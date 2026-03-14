@@ -6,32 +6,90 @@
 </head>
 <body>
 <div class="container">
+
     <h1>Deliveries</h1>
 
-    <h2>Log New Delivery</h2>
-    <form action="/log_delivery" method="POST">
-        <input name="employee" placeholder="Employee Name" required>
-        <input name="email" placeholder="Email" required>
-        <input name="courier" placeholder="Courier" required>
-        <button>Log Delivery</button>
-    </form>
+    <div class="card">
+        <h2>Receive New Delivery</h2>
 
-    <h2>Current Deliveries</h2>
-    <ul>
-        {% for i,d in enumerate(deliveries) %}
-        <li>
-            {{ d["ParcelID"] }} | {{ d["Employee"] }} | {{ d["Courier"] }} | Location: {{ d["Location"] }} | Status: {{ d["Status"] }}
-            {% if d["Status"] == "Stored" %}
-            <form action="/collect_delivery" method="POST" style="display:inline;">
-                <input type="hidden" name="row_index" value="{{i}}">
-                <button>Mark Collected</button>
-            </form>
-            {% endif %}
-        </li>
-        {% endfor %}
-    </ul>
+        {% if free_location %}
+            <p><strong>Next available location:</strong> {{ free_location }}</p>
+        {% else %}
+            <p><strong>No free locations available.</strong></p>
+        {% endif %}
 
-    <a href="/">Back to Home</a>
+        <form action="/receive_delivery" method="POST" class="form-grid">
+            <input name="item" placeholder="Item" required>
+            <input name="employee" placeholder="Employee Name" required>
+            <input name="email" placeholder="Employee Email" required>
+            <input name="courier" placeholder="Courier" required>
+            <button type="submit" {% if not free_location %}disabled{% endif %}>Receive Parcel</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Available Locations</h2>
+        <div class="locations">
+            {% for loc in range(1, 21) %}
+                {% if loc in available_locations %}
+                    <span class="location free">{{ loc }}</span>
+                {% else %}
+                    <span class="location used">{{ loc }}</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>All Deliveries</h2>
+
+        <table>
+            <tr>
+                <th>Parcel ID</th>
+                <th>Item</th>
+                <th>Employee</th>
+                <th>Email</th>
+                <th>Courier</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Received</th>
+                <th>Collected</th>
+                <th>Action</th>
+            </tr>
+
+            {% for d in deliveries %}
+            <tr>
+                <td>{{ d["ParcelID"] }}</td>
+                <td>{{ d["Item"] }}</td>
+                <td>{{ d["Employee"] }}</td>
+                <td>{{ d["Email"] }}</td>
+                <td>{{ d["Courier"] }}</td>
+                <td>{{ d["Location"] }}</td>
+                <td>
+                    {% if d["Status"] == "Stored" %}
+                        <span class="status stored">Stored</span>
+                    {% else %}
+                        <span class="status collected">Collected</span>
+                    {% endif %}
+                </td>
+                <td>{{ d["ReceivedTime"] }}</td>
+                <td>{{ d["CollectedTime"] }}</td>
+                <td>
+                    {% if d["Status"] == "Stored" %}
+                    <form action="/collect_delivery" method="POST">
+                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+                        <button type="submit">Collected</button>
+                    </form>
+                    {% else %}
+                    <span class="done">Done</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a class="back-link" href="/">Back</a>
 </div>
 </body>
 </html>
