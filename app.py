@@ -133,6 +133,15 @@ def count_visitors_inside(visitors):
     return sum(1 for v in visitors if v.get("Status", "").strip().lower() == "in")
 
 
+def daily_counts(visitors):
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str:
+            counts[date_str] = counts.get(date_str, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def monthly_counts(visitors):
     counts = {}
     for v in visitors:
@@ -140,7 +149,7 @@ def monthly_counts(visitors):
         if len(date_str) >= 7:
             key = date_str[:7]
             counts[key] = counts.get(key, 0) + 1
-    return dict(sorted(counts.items(), reverse=True))
+    return dict(sorted(counts.items()))
 
 
 def yearly_counts(visitors):
@@ -150,7 +159,41 @@ def yearly_counts(visitors):
         if len(date_str) >= 4:
             key = date_str[:4]
             counts[key] = counts.get(key, 0) + 1
-    return dict(sorted(counts.items(), reverse=True))
+    return dict(sorted(counts.items()))
+
+
+def filter_visitors_by_range(visitors, start_date="", end_date=""):
+    filtered = []
+
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if not date_str:
+            continue
+
+        try:
+            visitor_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+        if start_date:
+            try:
+                start_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                if visitor_date < start_obj:
+                    continue
+            except ValueError:
+                pass
+
+        if end_date:
+            try:
+                end_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                if visitor_date > end_obj:
+                    continue
+            except ValueError:
+                pass
+
+        filtered.append(v)
+
+    return filtered
 
 
 def normalize_date_string(date_str):
@@ -264,9 +307,7 @@ def collect_delivery():
 
         collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # G = Status
         update_cell("Deliveries", row_index, 6, "Collected")
-        # I = CollectedTime
         update_cell("Deliveries", row_index, 8, collected_time)
 
         return redirect(url_for("deliveries_page"))
@@ -390,9 +431,7 @@ def checkout_visitor():
 
         checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # G = Status
         update_cell("Visitors", row_index, 6, "Out")
-        # I = CheckOutTime
         update_cell("Visitors", row_index, 8, checkout_time)
 
         return redirect(url_for("visitors_page"))
@@ -432,17 +471,32 @@ def badges_page():
 def analytics_page():
     try:
         visitors = get_sheet("Visitors")
-        today_str = datetime.now().strftime("%Y-%m-%d")
 
+        start_date = request.args.get("start_date", "").strip()
+        end_date = request.args.get("end_date", "").strip()
+
+        if start_date or end_date:
+            filtered_visitors = filter_visitors_by_range(visitors, start_date, end_date)
+        else:
+            filtered_visitors = visitors
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
         used_badges = get_used_badges(visitors)
+
+        daily_data = daily_counts(filtered_visitors)
+        monthly_data = monthly_counts(filtered_visitors)
+        yearly_data = yearly_counts(filtered_visitors)
 
         stats = {
             "visitors_today": count_visitors_today(visitors, today_str),
             "visitors_inside": count_visitors_inside(visitors),
             "badges_in_use": len(used_badges),
             "badges_available": MAX_BADGES - len(used_badges),
-            "monthly_counts": monthly_counts(visitors),
-            "yearly_counts": yearly_counts(visitors),
+            "daily_counts": daily_data,
+            "monthly_counts": monthly_data,
+            "yearly_counts": yearly_data,
+            "start_date": start_date,
+            "end_date": end_date,
         }
 
         return render_template("analytics.html", stats=stats)
