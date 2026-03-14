@@ -1,33 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Visitor Check-in</title>
+<title>Visitor Checkin</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
+
 <body>
-<h1>Visitor Check-in</h1>
-<ul>
-{% for i, v in enumerate(today_visitors) %}
-<li>
-  {{ v["Name"] }} | Status: {{ v["Status"] }}
-  {% if v["Status"] != "Checked-in" %}
-  <form action="/assign_badge" method="POST" style="display:inline;">
-    <input type="hidden" name="row_index" value="{{ i }}">
-    <select name="badge" required>
-      {% for b in badges if b["Status"] == "Available" %}
-        <option value="{{ b["BadgeNumber"] }}">{{ b["BadgeNumber"] }}</option>
-      {% endfor %}
-    </select>
-    <button>Assign Badge & Check-in</button>
-  </form>
-  {% else %}
-  <form action="/checkout" method="POST" style="display:inline;">
-    <input type="hidden" name="row_index" value="{{ i }}">
-    <button>Check-out</button>
-  </form>
-  {% endif %}
-</li>
+
+<div class="container">
+
+<h1>Visitors</h1>
+
+<table>
+
+<tr>
+<th>Name</th>
+<th>Host</th>
+<th>Badge</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+{% for v in visitors %}
+
+<tr>
+
+<td>{{v["Name"]}}</td>
+<td>{{v["Host"]}}</td>
+<td>{{v["Badge"]}}</td>
+<td>{{v["Status"]}}</td>
+
+<td>
+
+{% if v["Status"]!="Checked-in" %}
+
+<form method="POST" action="/assign_badge">
+
+<input type="hidden" name="row" value="{{loop.index0}}">
+
+<select name="badge">
+
+{% for b in badges %}
+
+<option value="{{b["Badge"]}}">{{b["Badge"]}}</option>
+
 {% endfor %}
-</ul>
-<a href="/">Back to Home</a>
+
+</select>
+
+<button>Check-In</button>
+
+</form>
+
+{% else %}
+
+<form method="POST" action="/checkout">
+
+<input type="hidden" name="row" value="{{loop.index0}}">
+
+<button>Check-Out</button>
+
+</form>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<a href="/">Back</a>
+
+</div>
+
 </body>
 </html>
