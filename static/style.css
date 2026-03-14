@@ -478,5 +478,34 @@ tr:hover td {
     background: linear-gradient(90deg, #f58220, #dc6d10);
     border-radius: 999px;
 }
+
+.alert-card {
+    border: 1px solid rgba(220, 38, 38, 0.15);
+    background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.alert-card h2 {
+    color: #b91c1c;
+}
+
+.status-chip {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.scheduled-chip {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.unscheduled-chip {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fdba74;
+}
     
 }
