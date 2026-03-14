@@ -18,12 +18,12 @@
             <p><strong>No free locations available.</strong></p>
         {% endif %}
 
-        <form action="/receive_delivery" method="POST" class="form-grid">
+        <form action="/log_delivery" method="POST" class="form-grid">
             <input name="item" placeholder="Item" required>
             <input name="employee" placeholder="Employee Name" required>
             <input name="email" placeholder="Employee Email" required>
             <input name="courier" placeholder="Courier" required>
-            <button type="submit" {% if not free_location %}disabled{% endif %}>Receive Parcel</button>
+            <button type="submit" {% if not free_location %}disabled{% endif %}>Receive Delivery</button>
         </form>
     </div>
 
@@ -65,13 +65,7 @@
                 <td>{{ d["Email"] }}</td>
                 <td>{{ d["Courier"] }}</td>
                 <td>{{ d["Location"] }}</td>
-                <td>
-                    {% if d["Status"] == "Stored" %}
-                        <span class="status stored">Stored</span>
-                    {% else %}
-                        <span class="status collected">Collected</span>
-                    {% endif %}
-                </td>
+                <td>{{ d["Status"] }}</td>
                 <td>{{ d["ReceivedTime"] }}</td>
                 <td>{{ d["CollectedTime"] }}</td>
                 <td>
@@ -81,7 +75,7 @@
                         <button type="submit">Collected</button>
                     </form>
                     {% else %}
-                    <span class="done">Done</span>
+                    Done
                     {% endif %}
                 </td>
             </tr>
