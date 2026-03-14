@@ -33,27 +33,30 @@ def get_sheets_service():
 
 
 def get_sheet(sheet_name: str) -> list[dict]:
-    service = get_sheets_service()
-    result = (
-        service.spreadsheets()
-        .values()
-        .get(spreadsheetId=SHEET_ID, range=sheet_name)
-        .execute()
-    )
+    try:
+        service = get_sheets_service()
+        result = (
+            service.spreadsheets()
+            .values()
+            .get(spreadsheetId=SHEET_ID, range=sheet_name)
+            .execute()
+        )
 
-    values = result.get("values", [])
-    if not values:
+        values = result.get("values", [])
+        if not values:
+            return []
+
+        headers = values[0]
+        rows = values[1:]
+
+        out = []
+        for row in rows:
+            padded = row + [""] * (len(headers) - len(row))
+            out.append(dict(zip(headers, padded)))
+
+        return out
+    except Exception:
         return []
-
-    headers = values[0]
-    rows = values[1:]
-
-    out = []
-    for row in rows:
-        padded = row + [""] * (len(headers) - len(row))
-        out.append(dict(zip(headers, padded)))
-
-    return out
 
 
 def append_row(sheet_name: str, values: list[str]) -> None:
@@ -331,12 +334,8 @@ def visitors_page():
             v for v in visitors if v.get("Status", "").strip().lower() == "in"
         ]
 
-        # Safe fallback if PrebookedVisitors tab does not exist yet
-        try:
-            prebooked = get_sheet("PrebookedVisitors")
-            todays_prebooked = get_today_prebooked(prebooked, today_str)
-        except Exception:
-            todays_prebooked = []
+        prebooked = get_sheet("PrebookedVisitors")
+        todays_prebooked = get_today_prebooked(prebooked, today_str)
 
         return render_template(
             "visitors.html",
