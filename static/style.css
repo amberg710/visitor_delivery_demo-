@@ -1,45 +1,129 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #ffffff;
-    color: #333;
+    background: #ffffff;
+    margin: 0;
+    color: #222;
 }
 
 .container {
-    width: 80%;
+    width: 88%;
     margin: auto;
+    padding: 30px 0 60px;
+}
+
+h1, h2 {
+    color: #f58220;
+}
+
+.main-button {
+    display: inline-block;
+    background: #f58220;
+    color: #fff;
+    text-decoration: none;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
     padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
 }
 
-h1 {
-    color: #f68b1e;
-}
-
-input, button {
-    padding: 8px;
-    margin: 5px;
+.form-grid input {
+    padding: 10px;
+    margin: 6px 10px 6px 0;
+    min-width: 220px;
 }
 
 button {
-    background-color: #f68b1e;
+    background: #f58220;
     color: white;
     border: none;
+    padding: 10px 14px;
+    border-radius: 6px;
     cursor: pointer;
 }
 
 button:hover {
-    background-color: #d97706;
+    background: #dc6d10;
 }
 
-.menu .button {
+button:disabled {
+    background: #bbb;
+    cursor: not-allowed;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+th, td {
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+
+th {
+    color: #f58220;
+}
+
+.locations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.location {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.location.free {
+    background: #e8f7e8;
+    color: #1b7a1b;
+    border: 1px solid #bde0bd;
+}
+
+.location.used {
+    background: #ffe9e9;
+    color: #b42318;
+    border: 1px solid #f3b3b3;
+}
+
+.status.stored {
+    color: #b54708;
+    font-weight: bold;
+}
+
+.status.collected {
+    color: #067647;
+    font-weight: bold;
+}
+
+.done {
+    color: #067647;
+    font-weight: bold;
+}
+
+.back-link {
     display: inline-block;
-    padding: 10px 20px;
-    margin: 20px;
-    background-color: #f68b1e;
-    color: white;
+    margin-top: 10px;
+    color: #f58220;
     text-decoration: none;
-    border-radius: 5px;
-}
-
-.menu .button:hover {
-    background-color: #d97706;
+    font-weight: bold;
 }
