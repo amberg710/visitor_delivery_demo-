@@ -26,6 +26,15 @@ h1, h2 {
     display: inline-block;
 }
 
+.button:hover, button:hover {
+    background: #dc6d10;
+}
+
+button:disabled {
+    background: #bdbdbd;
+    cursor: not-allowed;
+}
+
 .card {
     background: #fff;
     border: 1px solid #eee;
@@ -51,6 +60,7 @@ th, td {
     text-align: left;
     padding: 12px 10px;
     border-bottom: 1px solid #eee;
+    vertical-align: top;
 }
 
 th {
