@@ -329,11 +329,16 @@ def checkout_visitor():
         if row_index < 0 or row_index >= len(visitors):
             return "Row index out of range.", 400
 
+        current_status = visitors[row_index].get("Status", "").strip().lower()
+        if current_status != "in":
+            return "Visitor is not currently checked in.", 400
+
         checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # E = Status
+        # E column = Status
         update_cell("Visitors", row_index, 4, "Out")
-        # G = CheckOutTime
+
+        # G column = CheckOutTime
         update_cell("Visitors", row_index, 6, checkout_time)
 
         return redirect(url_for("visitors_page"))
