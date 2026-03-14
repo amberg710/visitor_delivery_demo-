@@ -6,30 +6,58 @@
 </head>
 <body>
 <div class="container">
+
     <h1>Visitors</h1>
 
-    <h2>Check-In</h2>
-    <form action="/checkin" method="POST">
-        <input name="name" placeholder="Visitor Name" required>
-        <input name="host" placeholder="Host Name" required>
-        <input name="badge" placeholder="Badge Number" required>
-        <button>Check In</button>
-    </form>
+    <div class="card">
+        <h2>Currently Inside</h2>
+        <p><strong>Live visitors inside:</strong> {{ active_visitors|length }}</p>
+    </div>
 
-    <h2>Current Visitors</h2>
-    <ul>
-        {% for i,v in enumerate(visitors) %}
-        <li>
-            {{v["Name"]}} | Host: {{v["Host"]}} | Badge: {{v["Badge"]}} | Status: {{v["Status"]}} 
-            <form action="/checkout" method="POST" style="display:inline;">
-                <input type="hidden" name="row_index" value="{{i}}">
-                <button>Check Out</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
+    <div class="card">
+        <h2>Visitor Log</h2>
 
-    <a href="/">Back to Home</a>
+        <table>
+            <tr>
+                <th>Visitor ID</th>
+                <th>Name</th>
+                <th>ID Number</th>
+                <th>Badge</th>
+                <th>Status</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Action</th>
+            </tr>
+
+            {% for v in visitors %}
+            <tr>
+                <td>{{ v.get("VisitorID", "") }}</td>
+                <td>{{ v.get("Name", "") }}</td>
+                <td>{{ v.get("IDNumber", "") }}</td>
+                <td>{{ v.get("BadgeNumber", "") }}</td>
+                <td>{{ v.get("Status", "") }}</td>
+                <td>{{ v.get("CheckInTime", "") }}</td>
+                <td>{{ v.get("CheckOutTime", "") }}</td>
+                <td>
+                    {% if v.get("Status", "") == "In" %}
+                    <form action="/checkout_visitor" method="POST">
+                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+                        <button type="submit">Check Out</button>
+                    </form>
+                    {% else %}
+                    Done
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a class="button" href="/checkin">New Check-In</a>
+    <a class="button" href="/badges">Badge Dashboard</a>
+    <a class="button" href="/analytics">Analytics</a>
+    <a class="back-link" href="/">Back</a>
+
 </div>
 </body>
 </html>
