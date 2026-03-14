@@ -40,6 +40,7 @@ def get_sheet(sheet_name: str) -> list[dict]:
     for row in rows:
         padded = row + [""] * (len(headers) - len(row))
         out.append(dict(zip(headers, padded)))
+
     return out
 
 
@@ -61,15 +62,18 @@ def update_cell(sheet_name: str, row_index: int, col_index: int, value: str) -> 
 
 def get_free_location(deliveries: list[dict]) -> int | None:
     used = set()
+
     for d in deliveries:
         status = d.get("Status", "").strip().lower()
         location = d.get("Location", "").strip()
+
         if status == "stored" and location.isdigit():
             used.add(int(location))
 
     for i in range(1, MAX_LOCATIONS + 1):
         if i not in used:
             return i
+
     return None
 
 
@@ -86,8 +90,10 @@ def deliveries_page():
     used = {
         int(d["Location"])
         for d in deliveries
-        if d.get("Status", "").strip().lower() == "stored" and d.get("Location", "").isdigit()
+        if d.get("Status", "").strip().lower() == "stored"
+        and d.get("Location", "").isdigit()
     }
+
     available_locations = [i for i in range(1, MAX_LOCATIONS + 1) if i not in used]
 
     return render_template(
@@ -100,59 +106,69 @@ def deliveries_page():
 
 @app.route("/log_delivery", methods=["POST"])
 def log_delivery():
-    item = request.form.get("item", "").strip()
-    employee = request.form.get("employee", "").strip()
-    email = request.form.get("email", "").strip()
-    courier = request.form.get("courier", "").strip()
+    try:
+        item = request.form.get("item", "").strip()
+        employee = request.form.get("employee", "").strip()
+        email = request.form.get("email", "").strip()
+        courier = request.form.get("courier", "").strip()
 
-    if not item or not employee or not email or not courier:
-        return "Missing required fields.", 400
+        if not item or not employee or not email or not courier:
+            return "Missing required fields.", 400
 
-    deliveries = get_sheet("Deliveries")
-    location = get_free_location(deliveries)
+        deliveries = get_sheet("Deliveries")
+        location = get_free_location(deliveries)
 
-    if location is None:
-        return "No free storage locations available.", 400
+        if location is None:
+            return "No free storage locations available.", 400
 
-    parcel_id = str(uuid.uuid4())[:8].upper()
-    received_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        parcel_id = str(uuid.uuid4())[:8].upper()
+        received_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    append_row(
-        "Deliveries",
-        [
-            parcel_id,
-            item,
-            employee,
-            email,
-            courier,
-            str(location),
-            "Stored",
-            received_time,
-            "",
-        ],
-    )
+        append_row(
+            "Deliveries",
+            [
+                parcel_id,
+                item,
+                employee,
+                email,
+                courier,
+                str(location),
+                "Stored",
+                received_time,
+                "",
+            ],
+        )
 
-    return redirect(url_for("deliveries_page"))
+        return redirect(url_for("deliveries_page"))
+    except Exception as e:
+        return f"log_delivery failed: {str(e)}", 500
 
 
 @app.route("/collect_delivery", methods=["POST"])
 def collect_delivery():
-    row_index_raw = request.form.get("row_index", "").strip()
-    if not row_index_raw.isdigit():
-        return "Invalid row index.", 400
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
 
-    row_index = int(row_index_raw)
-    deliveries = get_sheet("Deliveries")
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
 
-    if row_index < 0 or row_index >= len(deliveries):
-        return "Row index out of range.", 400
+        row_index = int(row_index_raw)
+        deliveries = get_sheet("Deliveries")
 
-    collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if row_index < 0 or row_index >= len(deliveries):
+            return "Row index out of range.", 400
 
-    update_cell("Deliveries", row_index, 6, "Collected")
-    update_cell("Deliveries", row_index, 8, collected_time)
+        collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    return redirect(url_for("deliveries_page"))
+        # G column = Status
+        update_cell("Deliveries", row_index, 6, "Collected")
+
+        # I column = CollectedTime
+        update_cell("Deliveries", row_index, 8, collected_time)
+
+        return redirect(url_for("deliveries_page"))
+    except Exception as e:
+        return f"collect_delivery failed: {str(e)}", 500
 
 
 @app.route("/health")
