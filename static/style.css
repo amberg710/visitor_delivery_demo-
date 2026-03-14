@@ -203,3 +203,31 @@ select {
     font-size: 13px;
     opacity: 0.9;
 }
+.expected-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.expected-item {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f9f9f9;
+    line-height: 1.5;
+}
+.expected-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.expected-item {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f9f9f9;
+    line-height: 1.5;
+}
