@@ -1,55 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Visitors</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Visitors</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
-
 <div class="container">
+    <h1>Visitors</h1>
 
-<h1>Visitor Check-In</h1>
+    <h2>Check-In</h2>
+    <form action="/checkin" method="POST">
+        <input name="name" placeholder="Visitor Name" required>
+        <input name="host" placeholder="Host Name" required>
+        <input name="badge" placeholder="Badge Number" required>
+        <button>Check In</button>
+    </form>
 
-<form action="/checkin" method="POST">
+    <h2>Current Visitors</h2>
+    <ul>
+        {% for i,v in enumerate(visitors) %}
+        <li>
+            {{v["Name"]}} | Host: {{v["Host"]}} | Badge: {{v["Badge"]}} | Status: {{v["Status"]}} 
+            <form action="/checkout" method="POST" style="display:inline;">
+                <input type="hidden" name="row_index" value="{{i}}">
+                <button>Check Out</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
 
-<input name="name" placeholder="Visitor Name" required>
-<input name="company" placeholder="Company">
-<input name="host" placeholder="Host Employee">
-
-<button>Check In</button>
-
-</form>
-
-<h2>Visitors List</h2>
-
-<table>
-
-<tr>
-<th>Name</th>
-<th>Company</th>
-<th>Host</th>
-<th>Status</th>
-<th>Time</th>
-</tr>
-
-{% for v in visitors %}
-
-<tr>
-<td>{{ v["Name"] }}</td>
-<td>{{ v["Company"] }}</td>
-<td>{{ v["Host"] }}</td>
-<td>{{ v["Status"] }}</td>
-<td>{{ v["Time"] }}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-<a href="/">Back</a>
-
+    <a href="/">Back to Home</a>
 </div>
-
 </body>
 </html>
