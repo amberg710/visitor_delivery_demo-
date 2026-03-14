@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
-import requests
 from datetime import datetime
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 import os
 import uuid
+import json
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -12,29 +14,38 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, "static"),
 )
 
-API_KEY = os.environ.get("GOOGLE_API_KEY")
 SHEET_ID = os.environ.get("SHEET_ID")
+SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 MAX_LOCATIONS = 20
 
-if not API_KEY or not SHEET_ID:
-    raise RuntimeError("Missing GOOGLE_API_KEY or SHEET_ID environment variables.")
+if not SHEET_ID or not SERVICE_ACCOUNT_JSON:
+    raise RuntimeError("Missing SHEET_ID or GOOGLE_SERVICE_ACCOUNT_JSON environment variables.")
 
 
-def sheet_url(sheet_name: str) -> str:
-    return f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{sheet_name}"
+def get_sheets_service():
+    creds_dict = json.loads(SERVICE_ACCOUNT_JSON)
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_dict,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    )
+    return build("sheets", "v4", credentials=credentials, cache_discovery=False)
 
 
 def get_sheet(sheet_name: str) -> list[dict]:
-    url = sheet_url(sheet_name) + f"?key={API_KEY}"
-    response = requests.get(url, timeout=20)
-    response.raise_for_status()
-    data = response.json()
+    service = get_sheets_service()
+    result = (
+        service.spreadsheets()
+        .values()
+        .get(spreadsheetId=SHEET_ID, range=sheet_name)
+        .execute()
+    )
 
-    if "values" not in data or not data["values"]:
+    values = result.get("values", [])
+    if not values:
         return []
 
-    headers = data["values"][0]
-    rows = data["values"][1:]
+    headers = values[0]
+    rows = values[1:]
 
     out = []
     for row in rows:
@@ -45,19 +56,34 @@ def get_sheet(sheet_name: str) -> list[dict]:
 
 
 def append_row(sheet_name: str, values: list[str]) -> None:
-    url = sheet_url(sheet_name) + f":append?valueInputOption=RAW&key={API_KEY}"
-    response = requests.post(url, json={"values": [values]}, timeout=20)
-    response.raise_for_status()
+    service = get_sheets_service()
+    (
+        service.spreadsheets()
+        .values()
+        .append(
+            spreadsheetId=SHEET_ID,
+            range=sheet_name,
+            valueInputOption="RAW",
+            body={"values": [values]},
+        )
+        .execute()
+    )
 
 
 def update_cell(sheet_name: str, row_index: int, col_index: int, value: str) -> None:
+    service = get_sheets_service()
     cell = f"{chr(65 + col_index)}{row_index + 2}"
-    url = (
-        f"https://sheets.googleapis.com/v4/spreadsheets/"
-        f"{SHEET_ID}/values/{sheet_name}!{cell}?valueInputOption=RAW&key={API_KEY}"
+    (
+        service.spreadsheets()
+        .values()
+        .update(
+            spreadsheetId=SHEET_ID,
+            range=f"{sheet_name}!{cell}",
+            valueInputOption="RAW",
+            body={"values": [[value]]},
+        )
+        .execute()
     )
-    response = requests.put(url, json={"values": [[value]]}, timeout=20)
-    response.raise_for_status()
 
 
 def get_free_location(deliveries: list[dict]) -> int | None:
@@ -84,24 +110,27 @@ def home():
 
 @app.route("/deliveries")
 def deliveries_page():
-    deliveries = get_sheet("Deliveries")
-    free_location = get_free_location(deliveries)
+    try:
+        deliveries = get_sheet("Deliveries")
+        free_location = get_free_location(deliveries)
 
-    used = {
-        int(d["Location"])
-        for d in deliveries
-        if d.get("Status", "").strip().lower() == "stored"
-        and d.get("Location", "").isdigit()
-    }
+        used = {
+            int(d["Location"])
+            for d in deliveries
+            if d.get("Status", "").strip().lower() == "stored"
+            and d.get("Location", "").isdigit()
+        }
 
-    available_locations = [i for i in range(1, MAX_LOCATIONS + 1) if i not in used]
+        available_locations = [i for i in range(1, MAX_LOCATIONS + 1) if i not in used]
 
-    return render_template(
-        "deliveries.html",
-        deliveries=deliveries,
-        free_location=free_location,
-        available_locations=available_locations,
-    )
+        return render_template(
+            "deliveries.html",
+            deliveries=deliveries,
+            free_location=free_location,
+            available_locations=available_locations,
+        )
+    except Exception as e:
+        return f"/deliveries failed: {str(e)}", 500
 
 
 @app.route("/log_delivery", methods=["POST"])
@@ -160,10 +189,7 @@ def collect_delivery():
 
         collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # G column = Status
         update_cell("Deliveries", row_index, 6, "Collected")
-
-        # I column = CollectedTime
         update_cell("Deliveries", row_index, 8, collected_time)
 
         return redirect(url_for("deliveries_page"))
