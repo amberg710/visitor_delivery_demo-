@@ -20,11 +20,39 @@
     </div>
 </div>
 
-
-    
 <div class="container">
 
-    <h1>Badge Dashboard</h1>
+    <div class="page-hero">
+        <div>
+            <h1>Badge Dashboard</h1>
+            <div class="page-subtitle">Monitor live badge usage and after-hours return alerts.</div>
+        </div>
+    </div>
+
+    {% if badge_alert.show_alert %}
+    <div class="card alert-card">
+        <h2>Badge Return Alert</h2>
+        <p><strong>After-hours alert:</strong> these badges are still checked out after 7:00 PM.</p>
+
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Badge</th>
+                <th>Host</th>
+                <th>Check In Time</th>
+            </tr>
+
+            {% for item in badge_alert.overdue_badges %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.badge }}</td>
+                <td>{{ item.host }}</td>
+                <td>{{ item.checkin }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
 
     <div class="card">
         <h2>Live Badge Status</h2>
@@ -47,10 +75,7 @@
         </div>
     </div>
 
-    <a class="button" href="/checkin">Visitor Check-In</a>
-    <a class="button" href="/visitors">Visitor Log</a>
-    <a class="back-link" href="/">Back</a>
-
 </div>
+
 </body>
 </html>
