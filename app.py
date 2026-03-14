@@ -19,8 +19,11 @@ SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 MAX_LOCATIONS = 20
 MAX_BADGES = 30
 
-if not SHEET_ID or not SERVICE_ACCOUNT_JSON:
-    raise RuntimeError("Missing SHEET_ID or GOOGLE_SERVICE_ACCOUNT_JSON environment variables.")
+if not SHEET_ID:
+    raise RuntimeError("Missing SHEET_ID environment variable.")
+
+if not SERVICE_ACCOUNT_JSON:
+    raise RuntimeError("Missing GOOGLE_SERVICE_ACCOUNT_JSON environment variable.")
 
 
 def get_sheets_service():
@@ -32,7 +35,7 @@ def get_sheets_service():
     return build("sheets", "v4", credentials=credentials, cache_discovery=False)
 
 
-def get_sheet(sheet_name: str) -> list[dict]:
+def get_sheet(sheet_name):
     try:
         service = get_sheets_service()
         result = (
@@ -59,7 +62,7 @@ def get_sheet(sheet_name: str) -> list[dict]:
         return []
 
 
-def append_row(sheet_name: str, values: list[str]) -> None:
+def append_row(sheet_name, values):
     service = get_sheets_service()
     (
         service.spreadsheets()
@@ -74,7 +77,7 @@ def append_row(sheet_name: str, values: list[str]) -> None:
     )
 
 
-def update_cell(sheet_name: str, row_index: int, col_index: int, value: str) -> None:
+def update_cell(sheet_name, row_index, col_index, value):
     service = get_sheets_service()
     cell = f"{chr(65 + col_index)}{row_index + 2}"
     (
@@ -90,7 +93,7 @@ def update_cell(sheet_name: str, row_index: int, col_index: int, value: str) -> 
     )
 
 
-def get_free_location(deliveries: list[dict]) -> int | None:
+def get_free_location(deliveries):
     used = set()
 
     for d in deliveries:
@@ -107,7 +110,7 @@ def get_free_location(deliveries: list[dict]) -> int | None:
     return None
 
 
-def get_used_badges(visitors: list[dict]) -> set[int]:
+def get_used_badges(visitors):
     used = set()
     for v in visitors:
         status = v.get("Status", "").strip().lower()
@@ -117,20 +120,20 @@ def get_used_badges(visitors: list[dict]) -> set[int]:
     return used
 
 
-def get_available_badges(visitors: list[dict]) -> list[int]:
+def get_available_badges(visitors):
     used = get_used_badges(visitors)
     return [i for i in range(1, MAX_BADGES + 1) if i not in used]
 
 
-def count_visitors_today(visitors: list[dict], today_str: str) -> int:
+def count_visitors_today(visitors, today_str):
     return sum(1 for v in visitors if v.get("Date", "").strip() == today_str)
 
 
-def count_visitors_inside(visitors: list[dict]) -> int:
+def count_visitors_inside(visitors):
     return sum(1 for v in visitors if v.get("Status", "").strip().lower() == "in")
 
 
-def monthly_counts(visitors: list[dict]) -> dict[str, int]:
+def monthly_counts(visitors):
     counts = {}
     for v in visitors:
         date_str = v.get("Date", "").strip()
@@ -140,7 +143,7 @@ def monthly_counts(visitors: list[dict]) -> dict[str, int]:
     return dict(sorted(counts.items(), reverse=True))
 
 
-def yearly_counts(visitors: list[dict]) -> dict[str, int]:
+def yearly_counts(visitors):
     counts = {}
     for v in visitors:
         date_str = v.get("Date", "").strip()
@@ -150,7 +153,7 @@ def yearly_counts(visitors: list[dict]) -> dict[str, int]:
     return dict(sorted(counts.items(), reverse=True))
 
 
-def get_today_prebooked(prebooked: list[dict], today_str: str) -> list[dict]:
+def get_today_prebooked(prebooked, today_str):
     return [
         p for p in prebooked
         if p.get("VisitDate", "").strip() == today_str
@@ -438,7 +441,3 @@ def health():
         }
     except Exception as e:
         return {"ok": False, "error": str(e)}, 500
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
