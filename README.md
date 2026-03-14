@@ -1,183 +1,143 @@
-Visitor & Delivery Hub
+# Visitor & Delivery Hub
 
-A modern visitor management and reception operations dashboard built with Python Flask and Google Sheets API.
+Modern **visitor management and reception operations dashboard** built with **Python Flask** and **Google Sheets API**.
 
-This system allows reception teams to manage:
+This system allows reception teams to manage visitor check-ins, scheduled visits, badge allocation, package deliveries, and real-time analytics — all through a simple web interface.
 
-Visitor check-ins
+Google Sheets is used as the backend database, making the system lightweight, easy to deploy, and simple to maintain.
 
-Scheduled visits
+---
 
-Walk-in visitors
+# Overview
 
-Badge allocation
+Visitor & Delivery Hub centralizes multiple reception workflows into one dashboard:
 
-Package deliveries
+• Visitor check-in
+• Scheduled visitor tracking
+• Walk-in visitors
+• Badge tracking
+• Delivery management
+• Operational analytics
 
-Live visitor analytics
+The system provides **real-time operational insights** for reception staff and office administrators.
 
-The platform uses Google Sheets as a backend database, making it simple to deploy and operate without maintaining a full database server.
+---
 
-Overview
+# Key Features
 
-Visitor & Delivery Hub was designed as a lightweight front desk management system.
+## Visitor Check-In
 
-It centralizes multiple reception workflows into a single interface:
+Reception staff can register visitors quickly by entering:
 
-Visitor check-in
-
-Expected visitor tracking
-
-Badge management
-
-Package deliveries
-
-Operational analytics
-
-The dashboard provides real-time insights into visitor activity and reception performance.
-
-Key Features
-Visitor Check-In
-
-Reception staff can quickly register visitors by entering:
-
-Name
-
-ID number
-
-Visit purpose
-
-Host
-
-Badge number
+* Visitor name
+* ID number
+* Visit purpose
+* Host
+* Badge number
 
 The system automatically:
 
-Validates badge availability
+* Validates badge availability
+* Logs check-in time
+* Detects **scheduled vs walk-in visitors**
+* Stores all information in Google Sheets
 
-Logs check-in time
+---
 
-Marks visitor as Scheduled or Unscheduled
+## Expected Visitors
 
-Stores data in Google Sheets
+The system reads the **PrebookedVisitors sheet** and displays visitors expected today.
 
-Expected Visitors
+Each visitor appears with a **Pending status indicator**.
 
-The system checks the PrebookedVisitors sheet and shows:
+Reception can perform **one-click check-in** directly from the expected visitors list.
 
-Visitors expected today
+Once a visitor checks in, they automatically disappear from the pending list.
 
-Booking details
+---
 
-Host
+## Badge Dashboard
 
-Visit purpose
+The badge dashboard shows a **live overview of badge usage**.
 
-Visitors appear with a Pending status indicator.
+Each badge displays:
 
-Reception can perform one-click check-in from this list.
+* Badge number
+* Availability status
+* Assigned visitor
 
-Once the visitor checks in, they automatically disappear from the pending list.
+Statuses include:
 
-Badge Dashboard
+• Available
+• In Use
 
-Badge management includes:
+### After-Hours Alerts
 
-Live badge availability
+If badges are still checked out after **7:00 PM Monday–Friday**, the system displays an alert listing:
 
-Badge assigned visitor name
+* Visitor name
+* Badge number
+* Host
+* Check-in time
 
-Visual badge grid
+This helps reception ensure badges are returned before closing.
 
-Each badge shows:
+---
 
-Available
+## Delivery Management
 
-In Use
+Reception can log incoming packages for employees.
 
-Assigned visitor
+Each delivery record includes:
 
-After-hours alerts
+* Parcel ID
+* Item description
+* Employee name
+* Email
+* Courier
+* Storage location
 
-If badges remain checked out after 7 PM Monday–Friday, the system displays an alert showing:
+Storage locations are assigned automatically.
 
-Visitor name
+When a package is collected, reception can mark it as **Collected**, and the system records the collection time.
 
-Badge number
+---
 
-Host
+## Analytics Dashboard
 
-Check-in time
+The analytics dashboard provides **operational insights into visitor activity**.
 
-This helps ensure badges are returned before the end of the day.
+Metrics include:
 
-Delivery Management
+* Visitors today
+* Visitors currently inside
+* Monthly visitor totals
+* Badge utilization percentage
+* Scheduled vs walk-in visitors
+* Reception activity
 
-Reception can log packages delivered to employees.
+### Charts Included
 
-Delivery logging includes:
+* Visitor trend analysis (daily / monthly / yearly)
+* Purpose breakdown
+* Scheduled vs walk-in comparison
+* Receptionist activity
 
-Parcel ID
+Charts are powered by **Chart.js**.
 
-Item description
+---
 
-Employee name
-
-Email
-
-Courier
-
-Storage location
-
-Packages are assigned to storage slots automatically.
-
-Reception can mark deliveries as Collected, and the system logs the collection time.
-
-Analytics Dashboard
-
-The analytics page provides a business-style operational dashboard.
-
-Key metrics
-
-Visitors today
-
-Visitors currently inside
-
-Monthly visitor totals
-
-Badge utilization percentage
-
-Scheduled vs walk-in visitors
-
-Reception activity trends
-
-Data visualization
-
-The system includes charts for:
-
-Visitor trends (daily / monthly / yearly)
-
-Purpose breakdown
-
-Scheduled vs walk-in visitors
-
-Receptionist activity
-
-Charts are rendered using Chart.js.
-
-Scheduled vs Walk-In Detection
+# Scheduled vs Walk-In Detection
 
 When a visitor checks in, the system compares:
 
-Visitor name
+* Visitor name
+* Host
+* Visit date
 
-Host
+with the **PrebookedVisitors sheet**.
 
-Visit date
-
-against the PrebookedVisitors sheet.
-
-If a match exists for today:
+If a match is found:
 
 VisitType = Scheduled
 
@@ -185,39 +145,36 @@ Otherwise:
 
 VisitType = Unscheduled
 
-This allows the analytics dashboard to track:
+This enables accurate analytics on scheduled traffic vs walk-ins.
 
-Expected visitors
+---
 
-Walk-in traffic
+# Architecture
 
-Architecture
-
-The application follows a simple web architecture.
+The application uses a simple architecture:
 
 Browser
-   |
-   | HTTP
-   v
-Flask Application
-   |
-   | Google Sheets API
-   v
-Google Sheets Database
+↓
+Flask Web Application
+↓
+Google Sheets API
+↓
+Google Sheets (Database)
 
-The system avoids a traditional database and instead uses Google Sheets as the data store.
+Using Google Sheets allows the system to operate **without a traditional database server**.
 
-Advantages:
+Benefits:
 
-Easy setup
+* Simple deployment
+* Easy editing of data
+* No database maintenance
+* Accessible for non-technical staff
 
-No database maintenance
+---
 
-Accessible to non-technical staff
+# Project Structure
 
-Real-time updates
-
-Project Structure
+```
 project/
 │
 ├── app.py
@@ -234,11 +191,18 @@ project/
 │   └── style.css
 │
 └── README.md
-Data Storage
+```
 
-The application uses three Google Sheets tabs.
+---
 
-Visitors
+# Data Storage
+
+The system uses three Google Sheets tabs.
+
+## Visitors Sheet
+
+Columns:
+
 VisitorID
 Name
 IDNumber
@@ -250,7 +214,13 @@ CheckInTime
 CheckOutTime
 Date
 VisitType
-Deliveries
+
+---
+
+## Deliveries Sheet
+
+Columns:
+
 ParcelID
 Item
 Employee
@@ -260,7 +230,13 @@ Location
 Status
 ReceivedTime
 CollectedTime
-PrebookedVisitors
+
+---
+
+## PrebookedVisitors Sheet
+
+Columns:
+
 BookingID
 Name
 IDNumber
@@ -268,129 +244,138 @@ Purpose
 Host
 VisitDate
 Notes
-Installation
-1 Install dependencies
+
+---
+
+# Installation
+
+## 1 Install dependencies
+
+```
 pip install flask google-api-python-client google-auth
-2 Configure Google Sheets API
+```
 
-Create a Google Cloud Service Account and enable:
+---
 
-Google Sheets API
+## 2 Enable Google Sheets API
 
-Download the service account JSON credentials.
+1. Go to Google Cloud Console
+2. Create a project
+3. Enable **Google Sheets API**
+4. Create a **Service Account**
+5. Download the service account JSON file
 
-3 Set environment variables
+---
+
+## 3 Configure environment variables
 
 Example:
 
+```
 SHEET_ID=your_google_sheet_id
-GOOGLE_SERVICE_ACCOUNT_JSON=your_service_account_json_string
-4 Run the application
+GOOGLE_SERVICE_ACCOUNT_JSON=your_service_account_json
+```
+
+---
+
+## 4 Run the application
+
+```
 python app.py
+```
 
-The server will start on:
+The server will run on:
 
+```
 http://localhost:5000
-Deployment
+```
 
-The app can be deployed easily using:
+---
 
-Render
+# Deployment
 
-Railway
+This project can be deployed easily using:
 
-Fly.io
+* Render
+* Railway
+* Fly.io
+* Heroku
+* VPS servers
 
-Heroku
+Because the system uses **Google Sheets instead of a database**, deployment is simple and requires minimal configuration.
 
-VPS servers
+---
 
-Because it uses Google Sheets instead of a database, deployment is very simple.
+# Security Considerations
 
-Security Considerations
+The current version assumes usage within a **trusted internal network**.
 
-The system currently assumes a trusted internal network.
+Recommended improvements for production environments:
 
-Recommended improvements for production:
+* User authentication
+* Role-based permissions
+* Audit logs
+* HTTPS enforcement
+* Visitor approval workflows
 
-Authentication for reception users
+---
 
-Admin role permissions
+# Future Improvements
 
-Audit logging
+Potential future features include:
 
-HTTPS enforcement
+* QR code visitor check-in
+* Visitor photo capture
+* Email notifications for hosts
+* Slack or Teams delivery alerts
+* Badge expiration reminders
+* Export analytics to CSV or PDF
+* Multi-office support
 
-Future Improvements
+---
 
-Possible enhancements include:
+# Use Cases
 
-Visitor photo capture
+Visitor & Delivery Hub can be used for:
 
-QR code check-in
+* Corporate offices
+* Reception desks
+* Co-working spaces
+* Event venues
+* University departments
+* Security operations centers
 
-Email visitor notifications
+---
 
-Slack alerts for deliveries
-
-Automatic badge expiry reminders
-
-Visitor approval workflows
-
-CSV / PDF export for analytics
-
-Multi-location support
-
-Use Cases
-
-This system can be used for:
-
-Office receptions
-
-Corporate headquarters
-
-Co-working spaces
-
-Event venues
-
-University departments
-
-Security operations centers
-
-Technology Stack
+# Technology Stack
 
 Backend
-
 Python
-
 Flask
 
 Frontend
-
 HTML
-
 CSS
-
 JavaScript
-
 Chart.js
 
-Data Layer
-
+Data Storage
 Google Sheets API
 
-Author
+---
 
-Developed as a modern reception operations dashboard demonstrating:
+# Author
 
-Python backend development
+This project demonstrates:
 
-API integration
+* Python backend development
+* API integration
+* operational dashboard design
+* analytics visualization
+* workflow automation
 
-dashboard analytics
+---
 
-operational workflow automation
-
-License
+# License
 
 MIT License
