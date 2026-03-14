@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import os
@@ -219,6 +219,140 @@ def get_today_prebooked(prebooked, today_str):
             out.append(p)
 
     return out
+
+
+def purpose_counts(visitors):
+    counts = {}
+    for v in visitors:
+        purpose = v.get("Purpose", "").strip() or "Unknown"
+        counts[purpose] = counts.get(purpose, 0) + 1
+    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+
+def receptionist_counts(visitors):
+    counts = {}
+    for v in visitors:
+        host = v.get("Host", "").strip() or "Unknown"
+        counts[host] = counts.get(host, 0) + 1
+    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+
+def expected_vs_walkin_counts(visitors, prebooked):
+    expected_names = set()
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        name = p.get("Name", "").strip().lower()
+        if visit_date and name:
+            expected_names.add((name, visit_date))
+
+    expected = 0
+    walkin = 0
+
+    for v in visitors:
+        name = v.get("Name", "").strip().lower()
+        date_str = v.get("Date", "").strip()
+        if (name, date_str) in expected_names:
+            expected += 1
+        else:
+            walkin += 1
+
+    return {
+        "Expected": expected,
+        "Walk-In": walkin
+    }
+
+
+def trend_by_period(visitors, period="month"):
+    counts = {}
+
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if not date_str:
+            continue
+
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            continue
+
+        if period == "day":
+            key = dt.strftime("%Y-%m-%d")
+        elif period == "year":
+            key = dt.strftime("%Y")
+        else:
+            key = dt.strftime("%Y-%m")
+
+        counts[key] = counts.get(key, 0) + 1
+
+    return dict(sorted(counts.items()))
+
+
+def get_month_total(visitors, month_key):
+    total = 0
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str.startswith(month_key):
+            total += 1
+    return total
+
+
+def get_day_total(visitors, day_key):
+    total = 0
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str == day_key:
+            total += 1
+    return total
+
+
+def percentage_change(current, previous):
+    if previous == 0:
+        if current == 0:
+            return 0
+        return 100
+    return round(((current - previous) / previous) * 100, 1)
+
+
+def count_expected_today(prebooked, today_str):
+    total = 0
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            total += 1
+    return total
+
+
+def count_walkins_today(visitors, prebooked, today_str):
+    expected_names = set()
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            expected_names.add(p.get("Name", "").strip().lower())
+
+    walkins = 0
+    for v in visitors:
+        visitor_date = v.get("Date", "").strip()
+        name = v.get("Name", "").strip().lower()
+        if visitor_date == today_str and name not in expected_names:
+            walkins += 1
+    return walkins
+
+
+def badge_utilization_percent(visitors):
+    used = len(get_used_badges(visitors))
+    return round((used / MAX_BADGES) * 100, 1) if MAX_BADGES else 0
+
+
+def build_recent_daily_trend(visitors, days=14):
+    counts = daily_counts(visitors)
+    labels = list(counts.keys())
+    values = list(counts.values())
+
+    if len(labels) > days:
+        labels = labels[-days:]
+        values = values[-days:]
+
+    return labels, values
 
 
 @app.route("/")
@@ -471,32 +605,79 @@ def badges_page():
 def analytics_page():
     try:
         visitors = get_sheet("Visitors")
+        prebooked = get_sheet("PrebookedVisitors")
 
         start_date = request.args.get("start_date", "").strip()
         end_date = request.args.get("end_date", "").strip()
+        chart_view = request.args.get("chart_view", "trend").strip()
+        period = request.args.get("period", "month").strip()
 
         if start_date or end_date:
             filtered_visitors = filter_visitors_by_range(visitors, start_date, end_date)
         else:
             filtered_visitors = visitors
 
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        yesterday_str = (now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        this_month = now.strftime("%Y-%m")
+
+        if now.month == 1:
+            last_month_year = now.year - 1
+            last_month_num = 12
+        else:
+            last_month_year = now.year
+            last_month_num = now.month - 1
+
+        last_month = f"{last_month_year}-{last_month_num:02d}"
+
         used_badges = get_used_badges(visitors)
 
-        daily_data = daily_counts(filtered_visitors)
-        monthly_data = monthly_counts(filtered_visitors)
-        yearly_data = yearly_counts(filtered_visitors)
+        trend_data = trend_by_period(filtered_visitors, period)
+        purpose_data = purpose_counts(filtered_visitors)
+        receptionist_data = receptionist_counts(filtered_visitors)
+        expected_walkin_data = expected_vs_walkin_counts(filtered_visitors, prebooked)
+
+        today_total = get_day_total(visitors, today_str)
+        yesterday_total = get_day_total(visitors, yesterday_str)
+        month_total = get_month_total(visitors, this_month)
+        last_month_total = get_month_total(visitors, last_month)
+
+        today_change = percentage_change(today_total, yesterday_total)
+        month_change = percentage_change(month_total, last_month_total)
+        badge_percent = badge_utilization_percent(visitors)
+        expected_today = count_expected_today(prebooked, today_str)
+        walkins_today = count_walkins_today(visitors, prebooked, today_str)
+
+        trend_labels, trend_values = build_recent_daily_trend(visitors, 14)
 
         stats = {
-            "visitors_today": count_visitors_today(visitors, today_str),
+            "visitors_today": today_total,
             "visitors_inside": count_visitors_inside(visitors),
             "badges_in_use": len(used_badges),
             "badges_available": MAX_BADGES - len(used_badges),
-            "daily_counts": daily_data,
-            "monthly_counts": monthly_data,
-            "yearly_counts": yearly_data,
+            "daily_counts": daily_counts(filtered_visitors),
+            "monthly_counts": monthly_counts(filtered_visitors),
+            "yearly_counts": yearly_counts(filtered_visitors),
+            "trend_data": trend_data,
+            "purpose_data": purpose_data,
+            "receptionist_data": receptionist_data,
+            "expected_walkin_data": expected_walkin_data,
             "start_date": start_date,
             "end_date": end_date,
+            "chart_view": chart_view,
+            "period": period,
+            "today_change": today_change,
+            "month_total": month_total,
+            "month_change": month_change,
+            "badge_utilization": badge_percent,
+            "expected_today": expected_today,
+            "walkins_today": walkins_today,
+            "trend_labels": trend_labels,
+            "trend_values": trend_values,
+            "this_month": this_month,
+            "current_year": now.strftime("%Y"),
         }
 
         return render_template("analytics.html", stats=stats)
