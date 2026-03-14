@@ -18,31 +18,19 @@
         <h2>Expected Today</h2>
 
         {% if todays_prebooked %}
-        <table>
-            <tr>
-                <th>Booking ID</th>
-                <th>Name</th>
-                <th>ID Number</th>
-                <th>Purpose</th>
-                <th>Reception / Contact</th>
-                <th>Visit Date</th>
-                <th>Notes</th>
-            </tr>
-
-            {% for p in todays_prebooked %}
-            <tr>
-                <td>{{ p.get("BookingID", "") }}</td>
-                <td>{{ p.get("Name", "") }}</td>
-                <td>{{ p.get("IDNumber", "") }}</td>
-                <td>{{ p.get("Purpose", "") }}</td>
-                <td>{{ p.get("Host", "") }}</td>
-                <td>{{ p.get("VisitDate", "") }}</td>
-                <td>{{ p.get("Notes", "") }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+            <div class="expected-list">
+                {% for p in todays_prebooked %}
+                    <div class="expected-item">
+                        <strong>{{ p.get("Name", "") }}</strong><br>
+                        <span>Purpose: {{ p.get("Purpose", "") }}</span><br>
+                        <span>ID: {{ p.get("IDNumber", "") }}</span><br>
+                        <span>Receptionist: {{ p.get("Host", "") }}</span><br>
+                        <span>Notes: {{ p.get("Notes", "") }}</span>
+                    </div>
+                {% endfor %}
+            </div>
         {% else %}
-            <p>No prebooked visitors for today.</p>
+            <p>No expected visitors for today.</p>
         {% endif %}
     </div>
 
