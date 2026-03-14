@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Visitor & Delivery App</title>
+<title>Reception Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
+
 <body>
-<h1>Welcome to Visitor & Delivery App</h1>
-<ul>
-    <li><a href="/checkin">Visitor Check-in</a></li>
-    <li><a href="/deliveries">Delivery Logging</a></li>
-</ul>
+
+<div class="container">
+
+<h1>Reception Dashboard</h1>
+
+<a class="button" href="/checkin">Visitor Check-In</a>
+
+<a class="button" href="/deliveries">Deliveries</a>
+
+</div>
+
 </body>
 </html>
