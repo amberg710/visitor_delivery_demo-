@@ -17,6 +17,7 @@ app = Flask(
 SHEET_ID = os.environ.get("SHEET_ID")
 SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 MAX_LOCATIONS = 20
+MAX_BADGES = 30
 
 if not SHEET_ID or not SERVICE_ACCOUNT_JSON:
     raise RuntimeError("Missing SHEET_ID or GOOGLE_SERVICE_ACCOUNT_JSON environment variables.")
@@ -101,6 +102,49 @@ def get_free_location(deliveries: list[dict]) -> int | None:
             return i
 
     return None
+
+
+def get_used_badges(visitors: list[dict]) -> set[int]:
+    used = set()
+    for v in visitors:
+        status = v.get("Status", "").strip().lower()
+        badge = v.get("BadgeNumber", "").strip()
+        if status == "in" and badge.isdigit():
+            used.add(int(badge))
+    return used
+
+
+def get_available_badges(visitors: list[dict]) -> list[int]:
+    used = get_used_badges(visitors)
+    return [i for i in range(1, MAX_BADGES + 1) if i not in used]
+
+
+def count_visitors_today(visitors: list[dict], today_str: str) -> int:
+    return sum(1 for v in visitors if v.get("Date", "").strip() == today_str)
+
+
+def count_visitors_inside(visitors: list[dict]) -> int:
+    return sum(1 for v in visitors if v.get("Status", "").strip().lower() == "in")
+
+
+def monthly_counts(visitors: list[dict]) -> dict[str, int]:
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if len(date_str) >= 7:
+            key = date_str[:7]  # YYYY-MM
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items(), reverse=True))
+
+
+def yearly_counts(visitors: list[dict]) -> dict[str, int]:
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if len(date_str) >= 4:
+            key = date_str[:4]  # YYYY
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items(), reverse=True))
 
 
 @app.route("/")
@@ -197,12 +241,162 @@ def collect_delivery():
         return f"collect_delivery failed: {str(e)}", 500
 
 
+@app.route("/checkin")
+def checkin_page():
+    try:
+        visitors = get_sheet("Visitors")
+        available_badges = get_available_badges(visitors)
+        return render_template("checkin.html", available_badges=available_badges)
+    except Exception as e:
+        return f"/checkin failed: {str(e)}", 500
+
+
+@app.route("/log_visitor", methods=["POST"])
+def log_visitor():
+    try:
+        name = request.form.get("name", "").strip()
+        id_number = request.form.get("id_number", "").strip()
+        badge_number = request.form.get("badge_number", "").strip()
+
+        if not name or not id_number or not badge_number:
+            return "Missing required fields.", 400
+
+        if not badge_number.isdigit():
+            return "Invalid badge number.", 400
+
+        badge_number_int = int(badge_number)
+
+        if badge_number_int < 1 or badge_number_int > MAX_BADGES:
+            return "Badge number out of range.", 400
+
+        visitors = get_sheet("Visitors")
+        available_badges = get_available_badges(visitors)
+
+        if badge_number_int not in available_badges:
+            return "Selected badge is no longer available.", 400
+
+        visitor_id = str(uuid.uuid4())[:8].upper()
+        now = datetime.now()
+        checkin_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        date_only = now.strftime("%Y-%m-%d")
+
+        append_row(
+            "Visitors",
+            [
+                visitor_id,
+                name,
+                id_number,
+                str(badge_number_int),
+                "In",
+                checkin_time,
+                "",
+                date_only,
+            ],
+        )
+
+        return redirect(url_for("visitors_page"))
+    except Exception as e:
+        return f"log_visitor failed: {str(e)}", 500
+
+
+@app.route("/visitors")
+def visitors_page():
+    try:
+        visitors = get_sheet("Visitors")
+        active_visitors = [
+            v for v in visitors if v.get("Status", "").strip().lower() == "in"
+        ]
+        return render_template(
+            "visitors.html",
+            visitors=visitors,
+            active_visitors=active_visitors,
+        )
+    except Exception as e:
+        return f"/visitors failed: {str(e)}", 500
+
+
+@app.route("/checkout_visitor", methods=["POST"])
+def checkout_visitor():
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
+
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
+
+        row_index = int(row_index_raw)
+        visitors = get_sheet("Visitors")
+
+        if row_index < 0 or row_index >= len(visitors):
+            return "Row index out of range.", 400
+
+        checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # E = Status
+        update_cell("Visitors", row_index, 4, "Out")
+        # G = CheckOutTime
+        update_cell("Visitors", row_index, 6, checkout_time)
+
+        return redirect(url_for("visitors_page"))
+    except Exception as e:
+        return f"checkout_visitor failed: {str(e)}", 500
+
+
+@app.route("/badges")
+def badges_page():
+    try:
+        visitors = get_sheet("Visitors")
+        used_badges = get_used_badges(visitors)
+
+        active_by_badge = {}
+        for v in visitors:
+            if v.get("Status", "").strip().lower() == "in":
+                badge = v.get("BadgeNumber", "").strip()
+                if badge.isdigit():
+                    active_by_badge[int(badge)] = v.get("Name", "").strip()
+
+        badges = []
+        for i in range(1, MAX_BADGES + 1):
+            badges.append(
+                {
+                    "number": i,
+                    "available": i not in used_badges,
+                    "name": active_by_badge.get(i, ""),
+                }
+            )
+
+        return render_template("badges.html", badges=badges)
+    except Exception as e:
+        return f"/badges failed: {str(e)}", 500
+
+
+@app.route("/analytics")
+def analytics_page():
+    try:
+        visitors = get_sheet("Visitors")
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
+        stats = {
+            "visitors_today": count_visitors_today(visitors, today_str),
+            "visitors_inside": count_visitors_inside(visitors),
+            "badges_in_use": len(get_used_badges(visitors)),
+            "badges_available": MAX_BADGES - len(get_used_badges(visitors)),
+            "monthly_counts": monthly_counts(visitors),
+            "yearly_counts": yearly_counts(visitors),
+        }
+
+        return render_template("analytics.html", stats=stats)
+    except Exception as e:
+        return f"/analytics failed: {str(e)}", 500
+
+
 @app.route("/health")
 def health():
     try:
+        visitors = get_sheet("Visitors")
         deliveries = get_sheet("Deliveries")
         return {
             "ok": True,
+            "visitors_rows": len(visitors),
             "deliveries_rows": len(deliveries),
             "sheet_id": SHEET_ID,
         }
