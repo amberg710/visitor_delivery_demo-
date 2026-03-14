@@ -4,10 +4,7 @@ from datetime import datetime
 import os
 
 # --- Explicitly tell Flask where templates are ---
-app = Flask(
-    __name__,
-    template_folder=os.path.join(os.path.dirname(__file__), "templates")
-)
+app = Flask(__name__, template_folder="templates")
 
 # --- Google Sheets API setup (from environment variables) ---
 API_KEY = os.environ.get("GOOGLE_API_KEY")
