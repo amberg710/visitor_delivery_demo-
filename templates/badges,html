@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Badge Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    <h1>Badge Dashboard</h1>
+
+    <div class="card">
+        <h2>Live Badge Status</h2>
+        <div class="badges-grid">
+            {% for badge in badges %}
+                <div class="badge-card {% if badge.available %}badge-free{% else %}badge-used{% endif %}">
+                    <div class="badge-number">Badge {{ badge.number }}</div>
+                    <div class="badge-status">
+                        {% if badge.available %}
+                            Available
+                        {% else %}
+                            In Use
+                        {% endif %}
+                    </div>
+                    {% if badge.name %}
+                        <div class="badge-name">{{ badge.name }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <a class="button" href="/checkin">Visitor Check-In</a>
+    <a class="button" href="/visitors">Visitor Log</a>
+    <a class="back-link" href="/">Back</a>
+
+</div>
+</body>
+</html>
