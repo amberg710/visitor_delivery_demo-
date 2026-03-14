@@ -103,3 +103,53 @@ th {
     text-decoration: none;
     font-weight: bold;
 }
+
+select {
+    padding: 10px;
+    margin: 6px 10px 6px 0;
+    min-width: 220px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.badge-card {
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #eee;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+}
+
+.badge-free {
+    background: #e8f7e8;
+    color: #1b7a1b;
+    border: 1px solid #bde0bd;
+}
+
+.badge-used {
+    background: #ffe9e9;
+    color: #b42318;
+    border: 1px solid #f3b3b3;
+}
+
+.badge-number {
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.badge-status {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.badge-name {
+    font-size: 13px;
+    opacity: 0.9;
+}
