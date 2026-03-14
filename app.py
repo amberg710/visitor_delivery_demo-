@@ -325,7 +325,7 @@ def log_visitor():
 def visitors_page():
     try:
         visitors = get_sheet("Visitors")
-        prebooked = get_sheet("Prebooked")
+        prebooked = get_sheet("PrebookedVisitors")
         today_str = datetime.now().strftime("%Y-%m-%d")
 
         active_visitors = [
