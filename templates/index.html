@@ -4,45 +4,32 @@
     <title>Visitor & Delivery Demo</title>
 </head>
 <body>
-<h1>Visitor & Delivery Demo</h1>
+<h1>Visitor Check-in</h1>
 
-<h2>Visitors</h2>
+<h2>Today's Visitors</h2>
 <ul>
-  {% for i, v in enumerate(visitors) %}
-  <li>
-    {{ v["Name"] }} | Host: {{ v["Host"] }} | Badge: {{ v["Badge"] }} | Status: {{ v["Status"] }} 
-    | Checkin: {{ v["Checkin"] }} | Checkout: {{ v["Checkout"] }}
-    <form action="/checkout" method="POST" style="display:inline;">
-      <input type="hidden" name="row_index" value="{{ i }}">
-      <button>Check Out</button>
-    </form>
-  </li>
-  {% endfor %}
+{% for i, v in enumerate(today_visitors) %}
+<li>
+  {{ v["Name"] }} | Status: {{ v["Status"] }}
+  {% if v["Status"] != "Checked-in" %}
+  <form action="/assign_badge" method="POST" style="display:inline;">
+    <input type="hidden" name="row_index" value="{{ i }}">
+    <select name="badge" required>
+      {% for b in badges if b["Status"] == "Available" %}
+        <option value="{{ b["BadgeNumber"] }}">{{ b["BadgeNumber"] }}</option>
+      {% endfor %}
+    </select>
+    <button>Assign Badge & Check-in</button>
+  </form>
+  {% else %}
+  <form action="/checkout" method="POST" style="display:inline;">
+    <input type="hidden" name="row_index" value="{{ i }}">
+    <button>Check-out</button>
+  </form>
+  {% endif %}
+</li>
+{% endfor %}
 </ul>
-
-<h3>Check-in Visitor</h3>
-<form action="/checkin" method="POST">
-  <input name="name" placeholder="Visitor Name" required>
-  <input name="host" placeholder="Host Name" required>
-  <input name="badge" placeholder="Badge Number" required>
-  <button>Check In</button>
-</form>
-
-<h2>Deliveries</h2>
-<h3>Log Delivery</h3>
-<form action="/deliver" method="POST">
-  <input name="item" placeholder="Item" required>
-  <input name="employee" placeholder="Employee" required>
-  <input name="courier" placeholder="Courier" required>
-  <input name="location" placeholder="Location" required>
-  <button>Log Delivery</button>
-</form>
-
-<h3>Pickup Delivery</h3>
-<form action="/pickup" method="POST">
-  <input type="number" name="row_index" placeholder="Delivery Row Index" required>
-  <button>Mark Pickup</button>
-</form>
 
 </body>
 </html>
