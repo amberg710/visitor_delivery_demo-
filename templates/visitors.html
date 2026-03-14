@@ -6,127 +6,150 @@
 </head>
 <body>
 
-<div class="glass-nav">
-    <div class="nav-inner">
-        <div class="nav-brand">Visitor & Delivery Hub</div>
-        <div class="nav-links">
-            <a href="/">Home</a>
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>AccessHub</h1>
+            <p>Visitor & Delivery Operations</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/">Dashboard</a>
             <a href="/checkin">Check-In</a>
-            <a href="/visitors">Visitors</a>
+            <a href="/visitors" class="active">Visitors</a>
             <a href="/deliveries">Deliveries</a>
             <a href="/badges">Badges</a>
             <a href="/analytics">Analytics</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            Reception Operations Platform
         </div>
-    </div>
-</div>
+    </aside>
 
-<div class="container">
+    <div class="main-shell">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>Visitors</h2>
+                <p>Live reception overview and arrivals</p>
+            </div>
+            <div class="topbar-right">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live
+                </div>
+            </div>
+        </header>
 
-    <div class="page-hero">
-        <div>
-            <h1>Visitors</h1>
-            <div class="page-subtitle">Live reception overview, expected arrivals, and visitor activity.</div>
-        </div>
-        <div class="top-actions">
-            <a class="button" href="/checkin">New Check-In</a>
-            <a class="button" href="/badges">Badge Dashboard</a>
-            <a class="button" href="/analytics">Analytics</a>
-        </div>
-    </div>
+        <main class="page-content">
+            <div class="container">
 
-    <div class="card">
-        <h2>Currently Inside</h2>
-        <p><strong>Live visitors inside:</strong> {{ active_visitors|length }}</p>
-    </div>
+                <div class="top-actions">
+                    <a class="button" href="/checkin">New Check-In</a>
+                    <a class="button" href="/badges">Badge Dashboard</a>
+                    <a class="button" href="/analytics">Analytics</a>
+                </div>
 
-    <div class="card">
-        <h2>Expected Today</h2>
+                <div class="card">
+                    <h2>Currently Inside</h2>
+                    <p><strong>Live visitors inside:</strong> {{ active_visitors|length }}</p>
+                </div>
 
-        {% if todays_prebooked %}
-        <table>
-            <tr>
-                <th>Booking ID</th>
-                <th>Name</th>
-                <th>ID Number</th>
-                <th>Purpose</th>
-                <th>Host</th>
-                <th>Visit Date</th>
-                <th>Notes</th>
-                <th>Action</th>
-            </tr>
+                <div class="card">
+                    <h2>Expected Today</h2>
 
-            {% for p in todays_prebooked %}
-            <tr>
-                <td>{{ p.get("BookingID", "") }}</td>
-                <td>{{ p.get("Name", "") }}</td>
-                <td>{{ p.get("IDNumber", "") }}</td>
-                <td>{{ p.get("Purpose", "") }}</td>
-                <td>{{ p.get("Host", "") }}</td>
-                <td>{{ p.get("VisitDate", "") }}</td>
-                <td>{{ p.get("Notes", "") }}</td>
-                <td>
-                    <form action="/checkin_prebooked" method="POST">
-                        <input type="hidden" name="row_index" value="{{ p.get('_row_index') }}">
-                        <button type="submit">Check In</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        {% else %}
-            <p>No expected visitors for today.</p>
-        {% endif %}
-    </div>
+                    {% if todays_prebooked %}
+                    <table>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Name</th>
+                            <th>ID Number</th>
+                            <th>Purpose</th>
+                            <th>Host</th>
+                            <th>Visit Date</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
 
-    <div class="card">
-        <h2>Visitor Log</h2>
-
-        <table>
-            <tr>
-                <th>Visitor ID</th>
-                <th>Name</th>
-                <th>ID Number</th>
-                <th>Purpose</th>
-                <th>Host</th>
-                <th>Badge</th>
-                <th>Status</th>
-                <th>Visit Type</th>
-                <th>Check In</th>
-                <th>Check Out</th>
-                <th>Action</th>
-            </tr>
-
-            {% for v in visitors %}
-            <tr>
-                <td>{{ v.get("VisitorID", "") }}</td>
-                <td>{{ v.get("Name", "") }}</td>
-                <td>{{ v.get("IDNumber", "") }}</td>
-                <td>{{ v.get("Purpose", "") }}</td>
-                <td>{{ v.get("Host", "") }}</td>
-                <td>{{ v.get("BadgeNumber", "") }}</td>
-                <td>{{ v.get("Status", "") }}</td>
-                <td>
-                    {% if v.get("VisitType", "").strip().lower() == "scheduled" %}
-                        <span class="status-chip scheduled-chip">Scheduled</span>
+                        {% for p in todays_prebooked %}
+                        <tr>
+                            <td>{{ p.get("BookingID", "") }}</td>
+                            <td>{{ p.get("Name", "") }}</td>
+                            <td>{{ p.get("IDNumber", "") }}</td>
+                            <td>{{ p.get("Purpose", "") }}</td>
+                            <td>{{ p.get("Host", "") }}</td>
+                            <td>{{ p.get("VisitDate", "") }}</td>
+                            <td><span class="status-chip pending-chip">Pending</span></td>
+                            <td>{{ p.get("Notes", "") }}</td>
+                            <td>
+                                <form action="/checkin_prebooked" method="POST">
+                                    <input type="hidden" name="row_index" value="{{ p.get('_row_index') }}">
+                                    <button type="submit">Check In</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
                     {% else %}
-                        <span class="status-chip unscheduled-chip">Unscheduled</span>
+                        <p>No expected visitors for today.</p>
                     {% endif %}
-                </td>
-                <td>{{ v.get("CheckInTime", "") }}</td>
-                <td>{{ v.get("CheckOutTime", "") }}</td>
-                <td>
-                    {% if v.get("Status", "").strip().lower() == "in" %}
-                    <form action="/checkout_visitor" method="POST">
-                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
-                        <button type="submit">Check Out</button>
-                    </form>
-                    {% else %}
-                    Done
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+                </div>
+
+                <div class="card">
+                    <h2>Visitor Log</h2>
+
+                    <table>
+                        <tr>
+                            <th>Visitor ID</th>
+                            <th>Name</th>
+                            <th>ID Number</th>
+                            <th>Purpose</th>
+                            <th>Host</th>
+                            <th>Badge</th>
+                            <th>Status</th>
+                            <th>Visit Type</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Action</th>
+                        </tr>
+
+                        {% for v in visitors %}
+                        <tr>
+                            <td>{{ v.get("VisitorID", "") }}</td>
+                            <td>{{ v.get("Name", "") }}</td>
+                            <td>{{ v.get("IDNumber", "") }}</td>
+                            <td>{{ v.get("Purpose", "") }}</td>
+                            <td>{{ v.get("Host", "") }}</td>
+                            <td>{{ v.get("BadgeNumber", "") }}</td>
+                            <td>{{ v.get("Status", "") }}</td>
+                            <td>
+                                {% if v.get("VisitType", "").strip().lower() == "scheduled" %}
+                                    <span class="status-chip scheduled-chip">Scheduled</span>
+                                {% else %}
+                                    <span class="status-chip unscheduled-chip">Unscheduled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ v.get("CheckInTime", "") }}</td>
+                            <td>{{ v.get("CheckOutTime", "") }}</td>
+                            <td>
+                                {% if v.get("Status", "").strip().lower() == "in" %}
+                                <form action="/checkout_visitor" method="POST">
+                                    <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+                                    <button type="submit">Check Out</button>
+                                </form>
+                                {% else %}
+                                Done
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
+            </div>
+        </main>
     </div>
 
 </div>
