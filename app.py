@@ -52,7 +52,10 @@ def append_row(sheet_name: str, values: list[str]) -> None:
 
 def update_cell(sheet_name: str, row_index: int, col_index: int, value: str) -> None:
     cell = f"{chr(65 + col_index)}{row_index + 2}"
-    url = f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{sheet_name}!{cell}?valueInputOption=RAW&key={API_KEY}"
+    url = (
+        f"https://sheets.googleapis.com/v4/spreadsheets/"
+        f"{SHEET_ID}/values/{sheet_name}!{cell}?valueInputOption=RAW&key={API_KEY}"
+    )
     response = requests.put(url, json={"values": [[value]]}, timeout=20)
     response.raise_for_status()
 
@@ -147,8 +150,8 @@ def collect_delivery():
 
     collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    update_cell("Deliveries", row_index, 6, "Collected")      # G
-    update_cell("Deliveries", row_index, 8, collected_time)   # I
+    update_cell("Deliveries", row_index, 6, "Collected")
+    update_cell("Deliveries", row_index, 8, collected_time)
 
     return redirect(url_for("deliveries_page"))
 
