@@ -1,8 +1,8 @@
 body {
     font-family: Arial, sans-serif;
     background: #ffffff;
-    margin: 0;
     color: #222;
+    margin: 0;
 }
 
 .container {
@@ -15,15 +15,15 @@ h1, h2 {
     color: #f58220;
 }
 
-.main-button {
-    display: inline-block;
+.button, button {
     background: #f58220;
-    color: #fff;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
     text-decoration: none;
-    padding: 16px 24px;
-    border-radius: 8px;
-    font-weight: bold;
-    margin-top: 10px;
+    display: inline-block;
 }
 
 .card {
@@ -41,24 +41,6 @@ h1, h2 {
     min-width: 220px;
 }
 
-button {
-    background: #f58220;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #dc6d10;
-}
-
-button:disabled {
-    background: #bbb;
-    cursor: not-allowed;
-}
-
 table {
     width: 100%;
     border-collapse: collapse;
@@ -69,7 +51,6 @@ th, td {
     text-align: left;
     padding: 12px 10px;
     border-bottom: 1px solid #eee;
-    vertical-align: top;
 }
 
 th {
@@ -103,21 +84,6 @@ th {
     background: #ffe9e9;
     color: #b42318;
     border: 1px solid #f3b3b3;
-}
-
-.status.stored {
-    color: #b54708;
-    font-weight: bold;
-}
-
-.status.collected {
-    color: #067647;
-    font-weight: bold;
-}
-
-.done {
-    color: #067647;
-    font-weight: bold;
 }
 
 .back-link {
