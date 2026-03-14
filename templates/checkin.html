@@ -1,76 +1,797 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Visitor Check-In</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        function toggleOtherPurpose() {
-            const purpose = document.getElementById("purpose").value;
-            const otherField = document.getElementById("other_purpose_wrapper");
-            otherField.style.display = purpose === "Other" ? "block" : "none";
+from flask import Flask, render_template, request, redirect, url_for
+from datetime import datetime, timedelta
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import os
+import uuid
+import json
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
+)
+
+SHEET_ID = os.environ.get("SHEET_ID")
+SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+MAX_LOCATIONS = 20
+MAX_BADGES = 30
+
+if not SHEET_ID:
+    raise RuntimeError("Missing SHEET_ID environment variable.")
+
+if not SERVICE_ACCOUNT_JSON:
+    raise RuntimeError("Missing GOOGLE_SERVICE_ACCOUNT_JSON environment variable.")
+
+
+def get_sheets_service():
+    creds_dict = json.loads(SERVICE_ACCOUNT_JSON)
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_dict,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    )
+    return build("sheets", "v4", credentials=credentials, cache_discovery=False)
+
+
+def get_sheet(sheet_name):
+    try:
+        service = get_sheets_service()
+        result = (
+            service.spreadsheets()
+            .values()
+            .get(spreadsheetId=SHEET_ID, range=sheet_name)
+            .execute()
+        )
+
+        values = result.get("values", [])
+        if not values:
+            return []
+
+        headers = values[0]
+        rows = values[1:]
+
+        out = []
+        for row in rows:
+            padded = row + [""] * (len(headers) - len(row))
+            out.append(dict(zip(headers, padded)))
+
+        return out
+    except Exception:
+        return []
+
+
+def append_row(sheet_name, values):
+    service = get_sheets_service()
+    (
+        service.spreadsheets()
+        .values()
+        .append(
+            spreadsheetId=SHEET_ID,
+            range=sheet_name,
+            valueInputOption="RAW",
+            body={"values": [values]},
+        )
+        .execute()
+    )
+
+
+def update_cell(sheet_name, row_index, col_index, value):
+    service = get_sheets_service()
+    cell = f"{chr(65 + col_index)}{row_index + 2}"
+    (
+        service.spreadsheets()
+        .values()
+        .update(
+            spreadsheetId=SHEET_ID,
+            range=f"{sheet_name}!{cell}",
+            valueInputOption="RAW",
+            body={"values": [[value]]},
+        )
+        .execute()
+    )
+
+
+def get_free_location(deliveries):
+    used = set()
+
+    for d in deliveries:
+        status = d.get("Status", "").strip().lower()
+        location = d.get("Location", "").strip()
+
+        if status == "stored" and location.isdigit():
+            used.add(int(location))
+
+    for i in range(1, MAX_LOCATIONS + 1):
+        if i not in used:
+            return i
+
+    return None
+
+
+def get_used_badges(visitors):
+    used = set()
+    for v in visitors:
+        status = v.get("Status", "").strip().lower()
+        badge = v.get("BadgeNumber", "").strip()
+        if status == "in" and badge.isdigit():
+            used.add(int(badge))
+    return used
+
+
+def get_available_badges(visitors):
+    used = get_used_badges(visitors)
+    return [i for i in range(1, MAX_BADGES + 1) if i not in used]
+
+
+def count_visitors_today(visitors, today_str):
+    return sum(1 for v in visitors if v.get("Date", "").strip() == today_str)
+
+
+def count_visitors_inside(visitors):
+    return sum(1 for v in visitors if v.get("Status", "").strip().lower() == "in")
+
+
+def daily_counts(visitors):
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str:
+            counts[date_str] = counts.get(date_str, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def monthly_counts(visitors):
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if len(date_str) >= 7:
+            key = date_str[:7]
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def yearly_counts(visitors):
+    counts = {}
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if len(date_str) >= 4:
+            key = date_str[:4]
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def filter_visitors_by_range(visitors, start_date="", end_date=""):
+    filtered = []
+
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if not date_str:
+            continue
+
+        try:
+            visitor_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+        if start_date:
+            try:
+                start_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                if visitor_date < start_obj:
+                    continue
+            except ValueError:
+                pass
+
+        if end_date:
+            try:
+                end_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                if visitor_date > end_obj:
+                    continue
+            except ValueError:
+                pass
+
+        filtered.append(v)
+
+    return filtered
+
+
+def normalize_date_string(date_str):
+    value = (date_str or "").strip()
+    if not value:
+        return ""
+
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    return value
+
+
+def get_today_prebooked(prebooked, today_str):
+    out = []
+
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            out.append(p)
+
+    return out
+
+
+def get_today_prebooked_with_index(prebooked, today_str):
+    out = []
+    for idx, p in enumerate(prebooked):
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            item = dict(p)
+            item["_row_index"] = idx
+            out.append(item)
+    return out
+
+
+def is_scheduled_visitor(name, host, prebooked):
+    visitor_name = (name or "").strip().lower()
+    visitor_host = (host or "").strip().lower()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    for p in prebooked:
+        booked_name = (p.get("Name", "") or "").strip().lower()
+        booked_host = (p.get("Host", "") or "").strip().lower()
+        booked_date = normalize_date_string(p.get("VisitDate", ""))
+
+        if (
+            visitor_name == booked_name
+            and visitor_host == booked_host
+            and booked_date == today
+        ):
+            return True
+
+    return False
+
+
+def purpose_counts(visitors):
+    counts = {}
+    for v in visitors:
+        purpose = v.get("Purpose", "").strip() or "Unknown"
+        counts[purpose] = counts.get(purpose, 0) + 1
+    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+
+def receptionist_counts(visitors):
+    counts = {}
+    for v in visitors:
+        host = v.get("Host", "").strip() or "Unknown"
+        counts[host] = counts.get(host, 0) + 1
+    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+
+def expected_vs_walkin_counts(visitors, prebooked=None):
+    scheduled = 0
+    unscheduled = 0
+
+    for v in visitors:
+        visit_type = (v.get("VisitType", "") or "").strip().lower()
+
+        if visit_type == "scheduled":
+            scheduled += 1
+        else:
+            unscheduled += 1
+
+    return {
+        "Scheduled": scheduled,
+        "Unscheduled": unscheduled
+    }
+
+
+def trend_by_period(visitors, period="month"):
+    counts = {}
+
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if not date_str:
+            continue
+
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            continue
+
+        if period == "day":
+            key = dt.strftime("%Y-%m-%d")
+        elif period == "year":
+            key = dt.strftime("%Y")
+        else:
+            key = dt.strftime("%Y-%m")
+
+        counts[key] = counts.get(key, 0) + 1
+
+    return dict(sorted(counts.items()))
+
+
+def get_month_total(visitors, month_key):
+    total = 0
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str.startswith(month_key):
+            total += 1
+    return total
+
+
+def get_day_total(visitors, day_key):
+    total = 0
+    for v in visitors:
+        date_str = v.get("Date", "").strip()
+        if date_str == day_key:
+            total += 1
+    return total
+
+
+def percentage_change(current, previous):
+    if previous == 0:
+        if current == 0:
+            return 0
+        return 100
+    return round(((current - previous) / previous) * 100, 1)
+
+
+def count_expected_today(prebooked, today_str):
+    total = 0
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            total += 1
+    return total
+
+
+def count_walkins_today(visitors, prebooked, today_str):
+    total = 0
+    for v in visitors:
+        if (
+            v.get("Date", "").strip() == today_str
+            and (v.get("VisitType", "") or "").strip().lower() == "unscheduled"
+        ):
+            total += 1
+    return total
+
+
+def badge_utilization_percent(visitors):
+    used = len(get_used_badges(visitors))
+    return round((used / MAX_BADGES) * 100, 1) if MAX_BADGES else 0
+
+
+def build_recent_daily_trend(visitors, days=14):
+    counts = daily_counts(visitors)
+    labels = list(counts.keys())
+    values = list(counts.values())
+
+    if len(labels) > days:
+        labels = labels[-days:]
+        values = values[-days:]
+
+    return labels, values
+
+
+def get_badge_alert_state(visitors):
+    now = datetime.now()
+    weekday = now.weekday()  # Monday=0 ... Sunday=6
+    after_hours = now.hour >= 19
+    is_weekday = weekday < 5
+
+    overdue_badges = []
+    if after_hours and is_weekday:
+        for v in visitors:
+            if v.get("Status", "").strip().lower() == "in":
+                overdue_badges.append(
+                    {
+                        "name": v.get("Name", "").strip(),
+                        "badge": v.get("BadgeNumber", "").strip(),
+                        "host": v.get("Host", "").strip(),
+                        "checkin": v.get("CheckInTime", "").strip(),
+                    }
+                )
+
+    return {
+        "show_alert": after_hours and is_weekday and len(overdue_badges) > 0,
+        "overdue_badges": overdue_badges,
+        "current_hour": now.hour,
+        "weekday": weekday,
+    }
+
+
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+
+@app.route("/deliveries")
+def deliveries_page():
+    try:
+        deliveries = get_sheet("Deliveries")
+        free_location = get_free_location(deliveries)
+
+        used = {
+            int(d["Location"])
+            for d in deliveries
+            if d.get("Status", "").strip().lower() == "stored"
+            and d.get("Location", "").isdigit()
         }
-    </script>
-</head>
-<body>
+
+        available_locations = [i for i in range(1, MAX_LOCATIONS + 1) if i not in used]
+
+        return render_template(
+            "deliveries.html",
+            deliveries=deliveries,
+            free_location=free_location,
+            available_locations=available_locations,
+        )
+    except Exception as e:
+        return f"/deliveries failed: {str(e)}", 500
 
 
-<div class="glass-nav">
-    <div class="nav-inner">
-        <div class="nav-brand">Visitor & Delivery Hub</div>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/checkin">Check-In</a>
-            <a href="/visitors">Visitors</a>
-            <a href="/deliveries">Deliveries</a>
-            <a href="/badges">Badges</a>
-            <a href="/analytics">Analytics</a>
-        </div>
-    </div>
-</div>
+@app.route("/log_delivery", methods=["POST"])
+def log_delivery():
+    try:
+        item = request.form.get("item", "").strip()
+        employee = request.form.get("employee", "").strip()
+        email = request.form.get("email", "").strip()
+        courier = request.form.get("courier", "").strip()
+
+        if not item or not employee or not email or not courier:
+            return "Missing required fields.", 400
+
+        deliveries = get_sheet("Deliveries")
+        location = get_free_location(deliveries)
+
+        if location is None:
+            return "No free storage locations available.", 400
+
+        parcel_id = str(uuid.uuid4())[:8].upper()
+        received_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        append_row(
+            "Deliveries",
+            [
+                parcel_id,
+                item,
+                employee,
+                email,
+                courier,
+                str(location),
+                "Stored",
+                received_time,
+                "",
+            ],
+        )
+
+        return redirect(url_for("deliveries_page"))
+    except Exception as e:
+        return f"log_delivery failed: {str(e)}", 500
 
 
-    
-<div class="container">
-    <h1>Visitor Check-In</h1>
+@app.route("/collect_delivery", methods=["POST"])
+def collect_delivery():
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
 
-    <div class="card">
-        <h2>Register Visitor</h2>
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
 
-        {% if available_badges %}
-        <form action="/log_visitor" method="POST" class="form-grid">
-            <input name="name" placeholder="Visitor Name" required>
-            <input name="id_number" placeholder="ID Number">
+        row_index = int(row_index_raw)
+        deliveries = get_sheet("Deliveries")
 
-            <select name="purpose" id="purpose" required onchange="toggleOtherPurpose()">
-                <option value="">Select Purpose</option>
-                <option value="Interview">Interview</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Other">Other</option>
-            </select>
+        if row_index < 0 or row_index >= len(deliveries):
+            return "Row index out of range.", 400
 
-            <div id="other_purpose_wrapper" style="display:none;">
-                <input name="other_purpose" id="other_purpose" placeholder="Enter purpose">
-            </div>
+        collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            <input name="host" placeholder="Receptionist" required>
+        update_cell("Deliveries", row_index, 6, "Collected")
+        update_cell("Deliveries", row_index, 8, collected_time)
 
-            <select name="badge_number" required>
-                <option value="">Select Available Badge</option>
-                {% for badge in available_badges %}
-                    <option value="{{ badge }}">Badge {{ badge }}</option>
-                {% endfor %}
-            </select>
+        return redirect(url_for("deliveries_page"))
+    except Exception as e:
+        return f"collect_delivery failed: {str(e)}", 500
 
-            <button type="submit">Check In Visitor</button>
-        </form>
-        {% else %}
-            <p><strong>No badges currently available.</strong></p>
-        {% endif %}
-    </div>
 
-    <a class="button" href="/visitors">Visitor Log</a>
-    <a class="button" href="/badges">Badge Dashboard</a>
-    <a class="back-link" href="/">Back</a>
-</div>
-</body>
-</html>
+@app.route("/checkin")
+def checkin_page():
+    try:
+        visitors = get_sheet("Visitors")
+        available_badges = get_available_badges(visitors)
+        return render_template("checkin.html", available_badges=available_badges, prefill=None)
+    except Exception as e:
+        return f"/checkin failed: {str(e)}", 500
+
+
+@app.route("/checkin_prebooked", methods=["POST"])
+def checkin_prebooked():
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
+
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
+
+        row_index = int(row_index_raw)
+        prebooked = get_sheet("PrebookedVisitors")
+
+        if row_index < 0 or row_index >= len(prebooked):
+            return "Row index out of range.", 400
+
+        booking = prebooked[row_index]
+        visitors = get_sheet("Visitors")
+        available_badges = get_available_badges(visitors)
+
+        prefill = {
+            "name": booking.get("Name", "").strip(),
+            "id_number": booking.get("IDNumber", "").strip(),
+            "purpose": booking.get("Purpose", "").strip(),
+            "host": booking.get("Host", "").strip(),
+        }
+
+        return render_template(
+            "checkin.html",
+            available_badges=available_badges,
+            prefill=prefill
+        )
+    except Exception as e:
+        return f"checkin_prebooked failed: {str(e)}", 500
+
+
+@app.route("/log_visitor", methods=["POST"])
+def log_visitor():
+    try:
+        name = request.form.get("name", "").strip()
+        id_number = request.form.get("id_number", "").strip()
+        purpose = request.form.get("purpose", "").strip()
+        other_purpose = request.form.get("other_purpose", "").strip()
+        host = request.form.get("host", "").strip()
+        badge_number = request.form.get("badge_number", "").strip()
+
+        if purpose == "Other" and other_purpose:
+            purpose = other_purpose
+
+        if not name or not purpose or not host or not badge_number:
+            return "Missing required fields.", 400
+
+        if not badge_number.isdigit():
+            return "Invalid badge number.", 400
+
+        badge_number_int = int(badge_number)
+
+        if badge_number_int < 1 or badge_number_int > MAX_BADGES:
+            return "Badge number out of range.", 400
+
+        visitors = get_sheet("Visitors")
+        prebooked = get_sheet("PrebookedVisitors")
+        available_badges = get_available_badges(visitors)
+
+        if badge_number_int not in available_badges:
+            return "Selected badge is no longer available.", 400
+
+        if any(
+            v.get("Status", "").strip().lower() == "in"
+            and v.get("BadgeNumber", "").strip() == str(badge_number_int)
+            for v in visitors
+        ):
+            return "Badge is already assigned to another visitor.", 400
+
+        visitor_id = str(uuid.uuid4())[:8].upper()
+        now = datetime.now()
+        checkin_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        date_only = now.strftime("%Y-%m-%d")
+
+        visit_type = "Scheduled" if is_scheduled_visitor(name, host, prebooked) else "Unscheduled"
+
+        append_row(
+            "Visitors",
+            [
+                visitor_id,
+                name,
+                id_number,
+                purpose,
+                host,
+                str(badge_number_int),
+                "In",
+                checkin_time,
+                "",
+                date_only,
+                visit_type,
+            ],
+        )
+
+        return redirect(url_for("visitors_page"))
+    except Exception as e:
+        return f"log_visitor failed: {str(e)}", 500
+
+
+@app.route("/visitors")
+def visitors_page():
+    try:
+        visitors = get_sheet("Visitors")
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
+        active_visitors = [
+            v for v in visitors if v.get("Status", "").strip().lower() == "in"
+        ]
+
+        prebooked = get_sheet("PrebookedVisitors")
+        todays_prebooked = get_today_prebooked_with_index(prebooked, today_str)
+
+        return render_template(
+            "visitors.html",
+            visitors=visitors,
+            active_visitors=active_visitors,
+            todays_prebooked=todays_prebooked,
+        )
+    except Exception as e:
+        return f"/visitors failed: {str(e)}", 500
+
+
+@app.route("/checkout_visitor", methods=["POST"])
+def checkout_visitor():
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
+
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
+
+        row_index = int(row_index_raw)
+        visitors = get_sheet("Visitors")
+
+        if row_index < 0 or row_index >= len(visitors):
+            return "Row index out of range.", 400
+
+        current_status = visitors[row_index].get("Status", "").strip().lower()
+        if current_status != "in":
+            return "Visitor is not currently checked in.", 400
+
+        checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        update_cell("Visitors", row_index, 6, "Out")
+        update_cell("Visitors", row_index, 8, checkout_time)
+
+        return redirect(url_for("visitors_page"))
+    except Exception as e:
+        return f"checkout_visitor failed: {str(e)}", 500
+
+
+@app.route("/badges")
+def badges_page():
+    try:
+        visitors = get_sheet("Visitors")
+        used_badges = get_used_badges(visitors)
+
+        active_by_badge = {}
+        for v in visitors:
+            if v.get("Status", "").strip().lower() == "in":
+                badge = v.get("BadgeNumber", "").strip()
+                if badge.isdigit():
+                    active_by_badge[int(badge)] = v.get("Name", "").strip()
+
+        badges = []
+        for i in range(1, MAX_BADGES + 1):
+            badges.append(
+                {
+                    "number": i,
+                    "available": i not in used_badges,
+                    "name": active_by_badge.get(i, ""),
+                }
+            )
+
+        badge_alert = get_badge_alert_state(visitors)
+
+        return render_template(
+            "badges.html",
+            badges=badges,
+            badge_alert=badge_alert,
+        )
+    except Exception as e:
+        return f"/badges failed: {str(e)}", 500
+
+
+@app.route("/analytics")
+def analytics_page():
+    try:
+        visitors = get_sheet("Visitors")
+        prebooked = get_sheet("PrebookedVisitors")
+
+        start_date = request.args.get("start_date", "").strip()
+        end_date = request.args.get("end_date", "").strip()
+        chart_view = request.args.get("chart_view", "trend").strip()
+        period = request.args.get("period", "month").strip()
+
+        if start_date or end_date:
+            filtered_visitors = filter_visitors_by_range(visitors, start_date, end_date)
+        else:
+            filtered_visitors = visitors
+
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        yesterday_str = (now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        this_month = now.strftime("%Y-%m")
+
+        if now.month == 1:
+            last_month_year = now.year - 1
+            last_month_num = 12
+        else:
+            last_month_year = now.year
+            last_month_num = now.month - 1
+
+        last_month = f"{last_month_year}-{last_month_num:02d}"
+
+        used_badges = get_used_badges(visitors)
+
+        trend_data = trend_by_period(filtered_visitors, period)
+        purpose_data = purpose_counts(filtered_visitors)
+        receptionist_data = receptionist_counts(filtered_visitors)
+        expected_walkin_data = expected_vs_walkin_counts(filtered_visitors, prebooked)
+
+        today_total = get_day_total(visitors, today_str)
+        yesterday_total = get_day_total(visitors, yesterday_str)
+        month_total = get_month_total(visitors, this_month)
+        last_month_total = get_month_total(visitors, last_month)
+
+        today_change = percentage_change(today_total, yesterday_total)
+        month_change = percentage_change(month_total, last_month_total)
+        badge_percent = badge_utilization_percent(visitors)
+        expected_today = count_expected_today(prebooked, today_str)
+        walkins_today = count_walkins_today(visitors, prebooked, today_str)
+
+        trend_labels, trend_values = build_recent_daily_trend(visitors, 14)
+
+        stats = {
+            "visitors_today": today_total,
+            "visitors_inside": count_visitors_inside(visitors),
+            "badges_in_use": len(used_badges),
+            "badges_available": MAX_BADGES - len(used_badges),
+            "daily_counts": daily_counts(filtered_visitors),
+            "monthly_counts": monthly_counts(filtered_visitors),
+            "yearly_counts": yearly_counts(filtered_visitors),
+            "trend_data": trend_data,
+            "purpose_data": purpose_data,
+            "receptionist_data": receptionist_data,
+            "expected_walkin_data": expected_walkin_data,
+            "start_date": start_date,
+            "end_date": end_date,
+            "chart_view": chart_view,
+            "period": period,
+            "today_change": today_change,
+            "month_total": month_total,
+            "month_change": month_change,
+            "badge_utilization": badge_percent,
+            "expected_today": expected_today,
+            "walkins_today": walkins_today,
+            "trend_labels": trend_labels,
+            "trend_values": trend_values,
+            "this_month": this_month,
+            "current_year": now.strftime("%Y"),
+        }
+
+        return render_template("analytics.html", stats=stats)
+    except Exception as e:
+        return f"/analytics failed: {str(e)}", 500
+
+
+@app.route("/health")
+def health():
+    try:
+        visitors = get_sheet("Visitors")
+        deliveries = get_sheet("Deliveries")
+        prebooked = get_sheet("PrebookedVisitors")
+
+        return {
+            "ok": True,
+            "visitors_rows": len(visitors),
+            "deliveries_rows": len(deliveries),
+            "prebooked_rows": len(prebooked),
+            "sheet_id": SHEET_ID,
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
