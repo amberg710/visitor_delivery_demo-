@@ -22,6 +22,8 @@
                 <th>Visitor ID</th>
                 <th>Name</th>
                 <th>ID Number</th>
+                <th>Purpose</th>
+                <th>Host</th>
                 <th>Badge</th>
                 <th>Status</th>
                 <th>Check In</th>
@@ -34,20 +36,22 @@
                 <td>{{ v.get("VisitorID", "") }}</td>
                 <td>{{ v.get("Name", "") }}</td>
                 <td>{{ v.get("IDNumber", "") }}</td>
+                <td>{{ v.get("Purpose", "") }}</td>
+                <td>{{ v.get("Host", "") }}</td>
                 <td>{{ v.get("BadgeNumber", "") }}</td>
                 <td>{{ v.get("Status", "") }}</td>
                 <td>{{ v.get("CheckInTime", "") }}</td>
                 <td>{{ v.get("CheckOutTime", "") }}</td>
                 <td>
-    {% if v.get("Status", "").strip().lower() == "in" %}
-    <form action="/checkout_visitor" method="POST">
-        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
-        <button type="submit">Check Out</button>
-    </form>
-    {% else %}
-    Done
-    {% endif %}
-</td>
+                    {% if v.get("Status", "").strip().lower() == "in" %}
+                    <form action="/checkout_visitor" method="POST">
+                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+                        <button type="submit">Check Out</button>
+                    </form>
+                    {% else %}
+                    Done
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </table>
