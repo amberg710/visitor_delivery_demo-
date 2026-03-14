@@ -4,7 +4,9 @@
     <title>Visitor Analytics</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
+
 <div class="glass-nav">
     <div class="nav-inner">
         <div class="nav-brand">Visitor & Delivery Hub</div>
@@ -19,26 +21,52 @@
     </div>
 </div>
 
-    
 <div class="container">
 
-    <h1>Visitor Analytics</h1>
-
-    <div class="card">
-        <h2>Live Overview</h2>
-        <p><strong>Visitors today:</strong> {{ stats.visitors_today }}</p>
-        <p><strong>Visitors currently inside:</strong> {{ stats.visitors_inside }}</p>
-        <p><strong>Badges in use:</strong> {{ stats.badges_in_use }}</p>
-        <p><strong>Badges available:</strong> {{ stats.badges_available }}</p>
+    <div class="page-hero">
+        <div>
+            <h1>Visitor Analytics</h1>
+            <div class="page-subtitle">
+                Live insights into visitor traffic and badge usage.
+            </div>
+        </div>
     </div>
 
+    <!-- Dashboard Stats -->
+    <div class="stat-grid">
+
+        <div class="stat-card">
+            <div class="stat-label">Visitors Today</div>
+            <div class="stat-value">{{ stats.visitors_today }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Currently Inside</div>
+            <div class="stat-value">{{ stats.visitors_inside }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Badges In Use</div>
+            <div class="stat-value">{{ stats.badges_in_use }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Badges Available</div>
+            <div class="stat-value">{{ stats.badges_available }}</div>
+        </div>
+
+    </div>
+
+    <!-- Monthly Table -->
     <div class="card">
         <h2>Monthly Visitor Totals</h2>
+
         <table>
             <tr>
                 <th>Month</th>
                 <th>Total Visitors</th>
             </tr>
+
             {% for month, total in stats.monthly_counts.items() %}
             <tr>
                 <td>{{ month }}</td>
@@ -48,13 +76,16 @@
         </table>
     </div>
 
+    <!-- Yearly Table -->
     <div class="card">
         <h2>Yearly Visitor Totals</h2>
+
         <table>
             <tr>
                 <th>Year</th>
                 <th>Total Visitors</th>
             </tr>
+
             {% for year, total in stats.yearly_counts.items() %}
             <tr>
                 <td>{{ year }}</td>
@@ -64,10 +95,12 @@
         </table>
     </div>
 
-    <a class="button" href="/visitors">Visitor Log</a>
-    <a class="button" href="/badges">Badge Dashboard</a>
-    <a class="back-link" href="/">Back</a>
+    <div class="top-actions">
+        <a class="button" href="/visitors">Visitor Log</a>
+        <a class="button" href="/badges">Badge Dashboard</a>
+    </div>
 
 </div>
+
 </body>
 </html>
