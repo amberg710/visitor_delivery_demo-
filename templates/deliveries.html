@@ -1,60 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Deliveries</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Deliveries</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
-
 <div class="container">
+    <h1>Deliveries</h1>
 
-<h1>Deliveries</h1>
+    <h2>Log New Delivery</h2>
+    <form action="/log_delivery" method="POST">
+        <input name="employee" placeholder="Employee Name" required>
+        <input name="email" placeholder="Email" required>
+        <input name="courier" placeholder="Courier" required>
+        <button>Log Delivery</button>
+    </form>
 
-<h2>Log New Delivery</h2>
+    <h2>Current Deliveries</h2>
+    <ul>
+        {% for i,d in enumerate(deliveries) %}
+        <li>
+            {{ d["ParcelID"] }} | {{ d["Employee"] }} | {{ d["Courier"] }} | Location: {{ d["Location"] }} | Status: {{ d["Status"] }}
+            {% if d["Status"] == "Stored" %}
+            <form action="/collect_delivery" method="POST" style="display:inline;">
+                <input type="hidden" name="row_index" value="{{i}}">
+                <button>Mark Collected</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
 
-<form action="/log_delivery" method="POST">
-
-<input name="item" placeholder="Item" required>
-<input name="employee" placeholder="Employee" required>
-<input name="courier" placeholder="Courier" required>
-<input name="location" placeholder="Location" required>
-
-<button>Log Delivery</button>
-
-</form>
-
-<h2>All Deliveries</h2>
-
-<table>
-
-<tr>
-<th>Item</th>
-<th>Employee</th>
-<th>Courier</th>
-<th>Location</th>
-<th>Status</th>
-<th>Time</th>
-</tr>
-
-{% for d in deliveries %}
-
-<tr>
-<td>{{ d["Item"] }}</td>
-<td>{{ d["Employee"] }}</td>
-<td>{{ d["Courier"] }}</td>
-<td>{{ d["Location"] }}</td>
-<td>{{ d["Status"] }}</td>
-<td>{{ d["Time"] }}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-<a href="/">Back</a>
-
+    <a href="/">Back to Home</a>
 </div>
-
 </body>
 </html>
