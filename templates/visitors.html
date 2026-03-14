@@ -15,24 +15,24 @@
     </div>
 
     <div class="card">
-        <h2>Expected Today</h2>
+    <h2>Expected Today</h2>
 
-        {% if todays_prebooked %}
-            <div class="expected-list">
-                {% for p in todays_prebooked %}
-                    <div class="expected-item">
-                        <strong>{{ p.get("Name", "") }}</strong><br>
-                        <span>Purpose: {{ p.get("Purpose", "") }}</span><br>
-                        <span>ID: {{ p.get("IDNumber", "") }}</span><br>
-                        <span>Receptionist: {{ p.get("Host", "") }}</span><br>
-                        <span>Notes: {{ p.get("Notes", "") }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>No expected visitors for today.</p>
-        {% endif %}
-    </div>
+    {% if todays_prebooked %}
+        <div class="expected-list">
+            {% for p in todays_prebooked %}
+                <div class="expected-item">
+                    <strong>{{ p.get("Name", "") }}</strong><br>
+                    <span>Purpose: {{ p.get("Purpose", "") }}</span><br>
+                    <span>ID: {{ p.get("IDNumber", "") }}</span><br>
+                    <span>Receptionist: {{ p.get("Host", "") }}</span><br>
+                    <span>Notes: {{ p.get("Notes", "") }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No expected visitors for today.</p>
+    {% endif %}
+</div>
 
     <div class="card">
         <h2>Visitor Log</h2>
