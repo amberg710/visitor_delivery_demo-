@@ -49,9 +49,10 @@
                 <th>Name</th>
                 <th>ID Number</th>
                 <th>Purpose</th>
-                <th>Receptionist</th>
+                <th>Host</th>
                 <th>Visit Date</th>
                 <th>Notes</th>
+                <th>Action</th>
             </tr>
 
             {% for p in todays_prebooked %}
@@ -63,6 +64,12 @@
                 <td>{{ p.get("Host", "") }}</td>
                 <td>{{ p.get("VisitDate", "") }}</td>
                 <td>{{ p.get("Notes", "") }}</td>
+                <td>
+                    <form action="/checkin_prebooked" method="POST">
+                        <input type="hidden" name="row_index" value="{{ p.get('_row_index') }}">
+                        <button type="submit">Check In</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </table>
@@ -80,9 +87,10 @@
                 <th>Name</th>
                 <th>ID Number</th>
                 <th>Purpose</th>
-                <th>Receptionist</th>
+                <th>Host</th>
                 <th>Badge</th>
                 <th>Status</th>
+                <th>Visit Type</th>
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Action</th>
@@ -97,6 +105,13 @@
                 <td>{{ v.get("Host", "") }}</td>
                 <td>{{ v.get("BadgeNumber", "") }}</td>
                 <td>{{ v.get("Status", "") }}</td>
+                <td>
+                    {% if v.get("VisitType", "").strip().lower() == "scheduled" %}
+                        <span class="status-chip scheduled-chip">Scheduled</span>
+                    {% else %}
+                        <span class="status-chip unscheduled-chip">Unscheduled</span>
+                    {% endif %}
+                </td>
                 <td>{{ v.get("CheckInTime", "") }}</td>
                 <td>{{ v.get("CheckOutTime", "") }}</td>
                 <td>
