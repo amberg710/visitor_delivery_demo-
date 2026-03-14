@@ -3,6 +3,13 @@
 <head>
     <title>Visitor Check-In</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function toggleOtherPurpose() {
+            const purpose = document.getElementById("purpose").value;
+            const otherField = document.getElementById("other_purpose_wrapper");
+            otherField.style.display = purpose === "Other" ? "block" : "none";
+        }
+    </script>
 </head>
 <body>
 <div class="container">
@@ -15,8 +22,19 @@
         <form action="/log_visitor" method="POST" class="form-grid">
             <input name="name" placeholder="Visitor Name" required>
             <input name="id_number" placeholder="ID Number">
-            <input name="purpose" placeholder="Purpose" required>
-            <input name="host" placeholder="Host Name" required>
+
+            <select name="purpose" id="purpose" required onchange="toggleOtherPurpose()">
+                <option value="">Select Purpose</option>
+                <option value="Interview">Interview</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <div id="other_purpose_wrapper" style="display:none;">
+                <input name="other_purpose" id="other_purpose" placeholder="Enter purpose">
+            </div>
+
+            <input name="host" placeholder="Receptionist" required>
 
             <select name="badge_number" required>
                 <option value="">Select Available Badge</option>
