@@ -15,6 +15,38 @@
     </div>
 
     <div class="card">
+        <h2>Expected Today</h2>
+
+        {% if todays_prebooked %}
+        <table>
+            <tr>
+                <th>Booking ID</th>
+                <th>Name</th>
+                <th>ID Number</th>
+                <th>Purpose</th>
+                <th>Reception / Contact</th>
+                <th>Visit Date</th>
+                <th>Notes</th>
+            </tr>
+
+            {% for p in todays_prebooked %}
+            <tr>
+                <td>{{ p.get("BookingID", "") }}</td>
+                <td>{{ p.get("Name", "") }}</td>
+                <td>{{ p.get("IDNumber", "") }}</td>
+                <td>{{ p.get("Purpose", "") }}</td>
+                <td>{{ p.get("Host", "") }}</td>
+                <td>{{ p.get("VisitDate", "") }}</td>
+                <td>{{ p.get("Notes", "") }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+            <p>No prebooked visitors for today.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
         <h2>Visitor Log</h2>
 
         <table>
@@ -23,7 +55,7 @@
                 <th>Name</th>
                 <th>ID Number</th>
                 <th>Purpose</th>
-                <th>Host</th>
+                <th>Receptionist</th>
                 <th>Badge</th>
                 <th>Status</th>
                 <th>Check In</th>
