@@ -3,8 +3,8 @@
 <head>
     <title>Visitor Analytics</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
 
 <div class="glass-nav">
@@ -27,14 +27,22 @@
         <div>
             <h1>Visitor Analytics</h1>
             <div class="page-subtitle">
-                Live insights into visitor traffic and badge usage.
+                Live insights into visitor traffic, trends, and badge usage.
             </div>
         </div>
     </div>
 
-    <!-- Dashboard Stats -->
-    <div class="stat-grid">
+    <div class="card">
+        <h2>Filter by Date Range</h2>
+        <form method="GET" action="/analytics" class="form-grid">
+            <input type="date" name="start_date" value="{{ stats.start_date }}">
+            <input type="date" name="end_date" value="{{ stats.end_date }}">
+            <button type="submit">Apply Filter</button>
+            <a class="button" href="/analytics">Reset</a>
+        </form>
+    </div>
 
+    <div class="stat-grid">
         <div class="stat-card">
             <div class="stat-label">Visitors Today</div>
             <div class="stat-value">{{ stats.visitors_today }}</div>
@@ -54,19 +62,46 @@
             <div class="stat-label">Badges Available</div>
             <div class="stat-value">{{ stats.badges_available }}</div>
         </div>
-
     </div>
 
-    <!-- Monthly Table -->
+    <div class="card">
+        <h2>Daily Visitor Trend</h2>
+        <canvas id="dailyChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Monthly Visitor Trend</h2>
+        <canvas id="monthlyChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Yearly Visitor Trend</h2>
+        <canvas id="yearlyChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Daily Visitor Totals</h2>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Total Visitors</th>
+            </tr>
+            {% for day, total in stats.daily_counts.items() %}
+            <tr>
+                <td>{{ day }}</td>
+                <td>{{ total }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
     <div class="card">
         <h2>Monthly Visitor Totals</h2>
-
         <table>
             <tr>
                 <th>Month</th>
                 <th>Total Visitors</th>
             </tr>
-
             {% for month, total in stats.monthly_counts.items() %}
             <tr>
                 <td>{{ month }}</td>
@@ -76,16 +111,13 @@
         </table>
     </div>
 
-    <!-- Yearly Table -->
     <div class="card">
         <h2>Yearly Visitor Totals</h2>
-
         <table>
             <tr>
                 <th>Year</th>
                 <th>Total Visitors</th>
             </tr>
-
             {% for year, total in stats.yearly_counts.items() %}
             <tr>
                 <td>{{ year }}</td>
@@ -95,12 +127,74 @@
         </table>
     </div>
 
-    <div class="top-actions">
-        <a class="button" href="/visitors">Visitor Log</a>
-        <a class="button" href="/badges">Badge Dashboard</a>
-    </div>
-
 </div>
+
+<script>
+    const dailyLabels = {{ stats.daily_counts.keys()|list|tojson }};
+    const dailyValues = {{ stats.daily_counts.values()|list|tojson }};
+
+    const monthlyLabels = {{ stats.monthly_counts.keys()|list|tojson }};
+    const monthlyValues = {{ stats.monthly_counts.values()|list|tojson }};
+
+    const yearlyLabels = {{ stats.yearly_counts.keys()|list|tojson }};
+    const yearlyValues = {{ stats.yearly_counts.values()|list|tojson }};
+
+    new Chart(document.getElementById("dailyChart"), {
+        type: "line",
+        data: {
+            labels: dailyLabels,
+            datasets: [{
+                label: "Visitors per Day",
+                data: dailyValues,
+                borderWidth: 2,
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+
+    new Chart(document.getElementById("monthlyChart"), {
+        type: "bar",
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: "Visitors per Month",
+                data: monthlyValues,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+
+    new Chart(document.getElementById("yearlyChart"), {
+        type: "bar",
+        data: {
+            labels: yearlyLabels,
+            datasets: [{
+                label: "Visitors per Year",
+                data: yearlyValues,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+</script>
 
 </body>
 </html>
