@@ -1,12 +1,16 @@
 from flask import Flask, request, redirect, render_template
 import requests
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 
-# --- Google Sheets API setup ---
-API_KEY = "AIzaSyCpDDVHyFLJhRTJqAouhCwh2P7MjcFT1z8"
-SPREADSHEET_ID = "1hlzFd1t0hfJqbxh0QyDXAvV717Ayr9ee9Dr1YlWOInc"
+# --- Google Sheets API setup (from environment variables) ---
+API_KEY = os.environ.get("GOOGLE_API_KEY")
+SPREADSHEET_ID = os.environ.get("SHEET_ID")
+
+if not API_KEY or not SPREADSHEET_ID:
+    raise ValueError("GOOGLE_API_KEY and SHEET_ID must be set as environment variables!")
 
 def sheet_url(sheet_name):
     return f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}"
@@ -31,7 +35,6 @@ def append_visitor(name, host, badge):
 # --- Check-out visitor ---
 def checkout_visitor(row_index):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # Update the checkout column (index 5, zero-based)
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/Visitors!F{row_index+2}?valueInputOption=RAW&key={API_KEY}"
     body = {"values": [[now]]}
     requests.put(url, json=body)
@@ -50,6 +53,7 @@ def pickup_delivery(row_index):
     body = {"values": [[now]]}
     requests.put(url, json=body)
 
+# --- Routes ---
 @app.route("/")
 def index():
     visitors = get_visitors()
@@ -84,5 +88,6 @@ def pickup():
     pickup_delivery(row_index)
     return redirect("/")
 
+# --- Production-ready server for Render ---
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
