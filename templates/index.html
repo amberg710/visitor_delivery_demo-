@@ -1,35 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Visitor & Delivery Demo</title>
+    <title>Visitor & Delivery App</title>
 </head>
 <body>
-<h1>Visitor Check-in</h1>
-
-<h2>Today's Visitors</h2>
+<h1>Welcome to Visitor & Delivery App</h1>
 <ul>
-{% for i, v in enumerate(today_visitors) %}
-<li>
-  {{ v["Name"] }} | Status: {{ v["Status"] }}
-  {% if v["Status"] != "Checked-in" %}
-  <form action="/assign_badge" method="POST" style="display:inline;">
-    <input type="hidden" name="row_index" value="{{ i }}">
-    <select name="badge" required>
-      {% for b in badges if b["Status"] == "Available" %}
-        <option value="{{ b["BadgeNumber"] }}">{{ b["BadgeNumber"] }}</option>
-      {% endfor %}
-    </select>
-    <button>Assign Badge & Check-in</button>
-  </form>
-  {% else %}
-  <form action="/checkout" method="POST" style="display:inline;">
-    <input type="hidden" name="row_index" value="{{ i }}">
-    <button>Check-out</button>
-  </form>
-  {% endif %}
-</li>
-{% endfor %}
+    <li><a href="/checkin">Visitor Check-in</a></li>
+    <li><a href="/deliveries">Delivery Logging</a></li>
 </ul>
-
 </body>
 </html>
