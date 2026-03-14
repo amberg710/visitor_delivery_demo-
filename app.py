@@ -14,7 +14,6 @@ app = Flask(
 
 API_KEY = os.environ.get("GOOGLE_API_KEY")
 SHEET_ID = os.environ.get("SHEET_ID")
-
 MAX_LOCATIONS = 20
 
 if not API_KEY or not SHEET_ID:
