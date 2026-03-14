@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Visitors</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Visitor Check-In</h1>
+
+<form action="/checkin" method="POST">
+
+<input name="name" placeholder="Visitor Name" required>
+<input name="company" placeholder="Company">
+<input name="host" placeholder="Host Employee">
+
+<button>Check In</button>
+
+</form>
+
+<h2>Visitors List</h2>
+
+<table>
+
+<tr>
+<th>Name</th>
+<th>Company</th>
+<th>Host</th>
+<th>Status</th>
+<th>Time</th>
+</tr>
+
+{% for v in visitors %}
+
+<tr>
+<td>{{ v["Name"] }}</td>
+<td>{{ v["Company"] }}</td>
+<td>{{ v["Host"] }}</td>
+<td>{{ v["Status"] }}</td>
+<td>{{ v["Time"] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<a href="/">Back</a>
+
+</div>
+
+</body>
+</html>
