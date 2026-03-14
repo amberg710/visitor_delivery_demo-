@@ -14,7 +14,9 @@
         {% if available_badges %}
         <form action="/log_visitor" method="POST" class="form-grid">
             <input name="name" placeholder="Visitor Name" required>
-            <input name="id_number" placeholder="ID Number" required>
+            <input name="id_number" placeholder="ID Number">
+            <input name="purpose" placeholder="Purpose" required>
+            <input name="host" placeholder="Host Name" required>
 
             <select name="badge_number" required>
                 <option value="">Select Available Badge</option>
@@ -31,6 +33,7 @@
     </div>
 
     <a class="button" href="/visitors">Visitor Log</a>
+    <a class="button" href="/badges">Badge Dashboard</a>
     <a class="back-link" href="/">Back</a>
 </div>
 </body>
