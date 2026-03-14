@@ -39,15 +39,15 @@
                 <td>{{ v.get("CheckInTime", "") }}</td>
                 <td>{{ v.get("CheckOutTime", "") }}</td>
                 <td>
-                    {% if v.get("Status", "") == "In" %}
-                    <form action="/checkout_visitor" method="POST">
-                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
-                        <button type="submit">Check Out</button>
-                    </form>
-                    {% else %}
-                    Done
-                    {% endif %}
-                </td>
+    {% if v.get("Status", "").strip().lower() == "in" %}
+    <form action="/checkout_visitor" method="POST">
+        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+        <button type="submit">Check Out</button>
+    </form>
+    {% else %}
+    Done
+    {% endif %}
+</td>
             </tr>
             {% endfor %}
         </table>
