@@ -1,30 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Delivery Logging</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<title>Deliveries</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
+
 <body>
+
 <div class="container">
-    <h1>Deliveries</h1>
 
-    <h2>Log New Delivery</h2>
-    <form action="/log_delivery" method="POST">
-        <input name="item" placeholder="Item" required>
-        <input name="employee" placeholder="Employee" required>
-        <input name="courier" placeholder="Courier" required>
-        <input name="location" placeholder="Location" required>
-        <button>Log Delivery</button>
-    </form>
+<h1>Log Delivery</h1>
 
-    <h2>All Deliveries</h2>
-    <ul>
-        {% for d in deliveries %}
-        <li>{{ d["Item"] }} | {{ d["Employee"] }} | {{ d["Courier"] }} | {{ d["Location"] }} | Status: {{ d["Status"] }}</li>
-        {% endfor %}
-    </ul>
+<form method="POST" action="/log_delivery">
 
-    <a href="/">Back to Home</a>
+<input name="employee" placeholder="Employee" required>
+<input name="email" placeholder="Email">
+<input name="courier" placeholder="Courier">
+<input name="parcel" placeholder="Parcel ID">
+<input name="location" placeholder="Location">
+
+<button>Log Delivery</button>
+
+</form>
+
+<h2>Deliveries</h2>
+
+<table>
+
+<tr>
+<th>Employee</th>
+<th>Courier</th>
+<th>Parcel</th>
+<th>Location</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+{% for d in deliveries %}
+
+<tr>
+
+<td>{{d["Employee"]}}</td>
+<td>{{d["Courier"]}}</td>
+<td>{{d["Parcel ID"]}}</td>
+<td>{{d["Location"]}}</td>
+<td>{{d["Status"]}}</td>
+
+<td>
+
+<form method="POST" action="/pickup">
+
+<input type="hidden" name="row" value="{{loop.index0}}">
+
+<button>Picked Up</button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<a href="/">Back</a>
+
 </div>
+
 </body>
 </html>
