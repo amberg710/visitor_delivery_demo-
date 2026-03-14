@@ -5,23 +5,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
 <div class="container">
+    <h1>Reception Dashboard</h1>
 
-<h1>Visitor & Delivery System</h1>
+    <div class="card">
+        <h2>Visitors</h2>
+        <a class="button" href="/checkin">Visitor Check-In</a>
+        <a class="button" href="/visitors">Visitor Log</a>
+        <a class="button" href="/badges">Badge Dashboard</a>
+        <a class="button" href="/analytics">Analytics</a>
+    </div>
 
-<div class="card">
-    <h2>Visitor Management</h2>
-    <a class="button" href="/checkin">Visitor Check-in</a>
-    <a class="button" href="/visitors">Visitor Log</a>
+    <div class="card">
+        <h2>Deliveries</h2>
+        <a class="button" href="/deliveries">Deliveries</a>
+    </div>
 </div>
-
-<div class="card">
-    <h2>Parcel Deliveries</h2>
-    <a class="button" href="/deliveries">Manage Deliveries</a>
-</div>
-
-</div>
-
 </body>
 </html>
