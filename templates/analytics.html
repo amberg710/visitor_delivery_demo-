@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visitor Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    <h1>Visitor Analytics</h1>
+
+    <div class="card">
+        <h2>Live Overview</h2>
+        <p><strong>Visitors today:</strong> {{ stats.visitors_today }}</p>
+        <p><strong>Visitors currently inside:</strong> {{ stats.visitors_inside }}</p>
+        <p><strong>Badges in use:</strong> {{ stats.badges_in_use }}</p>
+        <p><strong>Badges available:</strong> {{ stats.badges_available }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Monthly Visitor Totals</h2>
+        <table>
+            <tr>
+                <th>Month</th>
+                <th>Total Visitors</th>
+            </tr>
+            {% for month, total in stats.monthly_counts.items() %}
+            <tr>
+                <td>{{ month }}</td>
+                <td>{{ total }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Yearly Visitor Totals</h2>
+        <table>
+            <tr>
+                <th>Year</th>
+                <th>Total Visitors</th>
+            </tr>
+            {% for year, total in stats.yearly_counts.items() %}
+            <tr>
+                <td>{{ year }}</td>
+                <td>{{ total }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a class="button" href="/visitors">Visitor Log</a>
+    <a class="button" href="/badges">Badge Dashboard</a>
+    <a class="back-link" href="/">Back</a>
+
+</div>
+</body>
+</html>
