@@ -1,30 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Delivery Logging</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<div class="container">
-    <h1>Deliveries</h1>
+from flask import Flask, render_template, request, redirect
+from datetime import datetime
 
-    <h2>Log New Delivery</h2>
-    <form action="/log_delivery" method="POST">
-        <input name="item" placeholder="Item" required>
-        <input name="employee" placeholder="Employee" required>
-        <input name="courier" placeholder="Courier" required>
-        <input name="location" placeholder="Location" required>
-        <button>Log Delivery</button>
-    </form>
+app = Flask(__name__)
 
-    <h2>All Deliveries</h2>
-    <ul>
-        {% for d in deliveries %}
-        <li>{{ d["Item"] }} | {{ d["Employee"] }} | {{ d["Courier"] }} | {{ d["Location"] }} | Status: {{ d["Status"] }}</li>
-        {% endfor %}
-    </ul>
+deliveries = []
 
-    <a href="/">Back to Home</a>
-</div>
-</body>
-</html>
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+@app.route("/deliveries")
+def deliveries_page():
+    return render_template("deliveries.html", deliveries=deliveries)
+
+@app.route("/log_delivery", methods=["POST"])
+def log_delivery():
+    item = request.form["item"]
+    employee = request.form["employee"]
+    courier = request.form["courier"]
+    location = request.form["location"]
+
+    deliveries.append({
+        "Item": item,
+        "Employee": employee,
+        "Courier": courier,
+        "Location": location,
+        "Status": "Received",
+        "Time": datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
+
+    return redirect("/deliveries")
+
+if __name__ == "__main__":
+    app.run()
