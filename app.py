@@ -221,6 +221,37 @@ def get_today_prebooked(prebooked, today_str):
     return out
 
 
+def get_today_prebooked_with_index(prebooked, today_str):
+    out = []
+    for idx, p in enumerate(prebooked):
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            item = dict(p)
+            item["_row_index"] = idx
+            out.append(item)
+    return out
+
+
+def is_scheduled_visitor(name, host, prebooked):
+    visitor_name = (name or "").strip().lower()
+    visitor_host = (host or "").strip().lower()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    for p in prebooked:
+        booked_name = (p.get("Name", "") or "").strip().lower()
+        booked_host = (p.get("Host", "") or "").strip().lower()
+        booked_date = normalize_date_string(p.get("VisitDate", ""))
+
+        if (
+            visitor_name == booked_name
+            and visitor_host == booked_host
+            and booked_date == today
+        ):
+            return True
+
+    return False
+
+
 def purpose_counts(visitors):
     counts = {}
     for v in visitors:
@@ -237,28 +268,21 @@ def receptionist_counts(visitors):
     return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
 
 
-def expected_vs_walkin_counts(visitors, prebooked):
-    expected_names = set()
-    for p in prebooked:
-        visit_date = normalize_date_string(p.get("VisitDate", ""))
-        name = p.get("Name", "").strip().lower()
-        if visit_date and name:
-            expected_names.add((name, visit_date))
-
-    expected = 0
-    walkin = 0
+def expected_vs_walkin_counts(visitors, prebooked=None):
+    scheduled = 0
+    unscheduled = 0
 
     for v in visitors:
-        name = v.get("Name", "").strip().lower()
-        date_str = v.get("Date", "").strip()
-        if (name, date_str) in expected_names:
-            expected += 1
+        visit_type = (v.get("VisitType", "") or "").strip().lower()
+
+        if visit_type == "scheduled":
+            scheduled += 1
         else:
-            walkin += 1
+            unscheduled += 1
 
     return {
-        "Expected": expected,
-        "Walk-In": walkin
+        "Scheduled": scheduled,
+        "Unscheduled": unscheduled
     }
 
 
@@ -323,19 +347,14 @@ def count_expected_today(prebooked, today_str):
 
 
 def count_walkins_today(visitors, prebooked, today_str):
-    expected_names = set()
-    for p in prebooked:
-        visit_date = normalize_date_string(p.get("VisitDate", ""))
-        if visit_date == today_str:
-            expected_names.add(p.get("Name", "").strip().lower())
-
-    walkins = 0
+    total = 0
     for v in visitors:
-        visitor_date = v.get("Date", "").strip()
-        name = v.get("Name", "").strip().lower()
-        if visitor_date == today_str and name not in expected_names:
-            walkins += 1
-    return walkins
+        if (
+            v.get("Date", "").strip() == today_str
+            and (v.get("VisitType", "") or "").strip().lower() == "unscheduled"
+        ):
+            total += 1
+    return total
 
 
 def badge_utilization_percent(visitors):
@@ -353,6 +372,33 @@ def build_recent_daily_trend(visitors, days=14):
         values = values[-days:]
 
     return labels, values
+
+
+def get_badge_alert_state(visitors):
+    now = datetime.now()
+    weekday = now.weekday()  # Monday=0 ... Sunday=6
+    after_hours = now.hour >= 19
+    is_weekday = weekday < 5
+
+    overdue_badges = []
+    if after_hours and is_weekday:
+        for v in visitors:
+            if v.get("Status", "").strip().lower() == "in":
+                overdue_badges.append(
+                    {
+                        "name": v.get("Name", "").strip(),
+                        "badge": v.get("BadgeNumber", "").strip(),
+                        "host": v.get("Host", "").strip(),
+                        "checkin": v.get("CheckInTime", "").strip(),
+                    }
+                )
+
+    return {
+        "show_alert": after_hours and is_weekday and len(overdue_badges) > 0,
+        "overdue_badges": overdue_badges,
+        "current_hour": now.hour,
+        "weekday": weekday,
+    }
 
 
 @app.route("/")
@@ -454,9 +500,43 @@ def checkin_page():
     try:
         visitors = get_sheet("Visitors")
         available_badges = get_available_badges(visitors)
-        return render_template("checkin.html", available_badges=available_badges)
+        return render_template("checkin.html", available_badges=available_badges, prefill=None)
     except Exception as e:
         return f"/checkin failed: {str(e)}", 500
+
+
+@app.route("/checkin_prebooked", methods=["POST"])
+def checkin_prebooked():
+    try:
+        row_index_raw = request.form.get("row_index", "").strip()
+
+        if not row_index_raw.isdigit():
+            return "Invalid row index.", 400
+
+        row_index = int(row_index_raw)
+        prebooked = get_sheet("PrebookedVisitors")
+
+        if row_index < 0 or row_index >= len(prebooked):
+            return "Row index out of range.", 400
+
+        booking = prebooked[row_index]
+        visitors = get_sheet("Visitors")
+        available_badges = get_available_badges(visitors)
+
+        prefill = {
+            "name": booking.get("Name", "").strip(),
+            "id_number": booking.get("IDNumber", "").strip(),
+            "purpose": booking.get("Purpose", "").strip(),
+            "host": booking.get("Host", "").strip(),
+        }
+
+        return render_template(
+            "checkin.html",
+            available_badges=available_badges,
+            prefill=prefill
+        )
+    except Exception as e:
+        return f"checkin_prebooked failed: {str(e)}", 500
 
 
 @app.route("/log_visitor", methods=["POST"])
@@ -484,6 +564,7 @@ def log_visitor():
             return "Badge number out of range.", 400
 
         visitors = get_sheet("Visitors")
+        prebooked = get_sheet("PrebookedVisitors")
         available_badges = get_available_badges(visitors)
 
         if badge_number_int not in available_badges:
@@ -501,6 +582,8 @@ def log_visitor():
         checkin_time = now.strftime("%Y-%m-%d %H:%M:%S")
         date_only = now.strftime("%Y-%m-%d")
 
+        visit_type = "Scheduled" if is_scheduled_visitor(name, host, prebooked) else "Unscheduled"
+
         append_row(
             "Visitors",
             [
@@ -514,6 +597,7 @@ def log_visitor():
                 checkin_time,
                 "",
                 date_only,
+                visit_type,
             ],
         )
 
@@ -533,7 +617,7 @@ def visitors_page():
         ]
 
         prebooked = get_sheet("PrebookedVisitors")
-        todays_prebooked = get_today_prebooked(prebooked, today_str)
+        todays_prebooked = get_today_prebooked_with_index(prebooked, today_str)
 
         return render_template(
             "visitors.html",
@@ -596,7 +680,13 @@ def badges_page():
                 }
             )
 
-        return render_template("badges.html", badges=badges)
+        badge_alert = get_badge_alert_state(visitors)
+
+        return render_template(
+            "badges.html",
+            badges=badges,
+            badge_alert=badge_alert,
+        )
     except Exception as e:
         return f"/badges failed: {str(e)}", 500
 
