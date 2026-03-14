@@ -27,7 +27,7 @@
         <div>
             <h1>Visitor Analytics</h1>
             <div class="page-subtitle">
-                Live business-style dashboard for visitor flow, expected arrivals, and badge usage.
+                Live business-style dashboard for visitor flow, scheduled arrivals, and badge usage.
             </div>
         </div>
     </div>
@@ -41,7 +41,7 @@
             <select name="chart_view">
                 <option value="trend" {% if stats.chart_view == "trend" %}selected{% endif %}>Trend Overview</option>
                 <option value="purpose" {% if stats.chart_view == "purpose" %}selected{% endif %}>Purpose Breakdown</option>
-                <option value="expected_walkin" {% if stats.chart_view == "expected_walkin" %}selected{% endif %}>Expected vs Walk-In</option>
+                <option value="expected_walkin" {% if stats.chart_view == "expected_walkin" %}selected{% endif %}>Scheduled vs Unscheduled</option>
                 <option value="receptionist" {% if stats.chart_view == "receptionist" %}selected{% endif %}>Receptionist Activity</option>
             </select>
 
@@ -199,7 +199,7 @@
         labels = {{ stats.expected_walkin_data.keys()|list|tojson }};
         values = {{ stats.expected_walkin_data.values()|list|tojson }};
         chartType = "doughnut";
-        chartLabel = "Expected vs Walk-In";
+        chartLabel = "Scheduled vs Unscheduled";
     } else if (chartView === "receptionist") {
         labels = {{ stats.receptionist_data.keys()|list|tojson }};
         values = {{ stats.receptionist_data.values()|list|tojson }};
