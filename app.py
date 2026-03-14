@@ -325,14 +325,18 @@ def log_visitor():
 def visitors_page():
     try:
         visitors = get_sheet("Visitors")
-        prebooked = get_sheet("PrebookedVisitors")
         today_str = datetime.now().strftime("%Y-%m-%d")
 
         active_visitors = [
             v for v in visitors if v.get("Status", "").strip().lower() == "in"
         ]
 
-        todays_prebooked = get_today_prebooked(prebooked, today_str)
+        # Safe fallback if PrebookedVisitors tab does not exist yet
+        try:
+            prebooked = get_sheet("PrebookedVisitors")
+            todays_prebooked = get_today_prebooked(prebooked, today_str)
+        except Exception:
+            todays_prebooked = []
 
         return render_template(
             "visitors.html",
