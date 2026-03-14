@@ -27,170 +27,228 @@
         <div>
             <h1>Visitor Analytics</h1>
             <div class="page-subtitle">
-                Live insights into visitor traffic, trends, and badge usage.
+                Live business-style dashboard for visitor flow, expected arrivals, and badge usage.
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h2>Filter by Date Range</h2>
+        <h2>Filters</h2>
         <form method="GET" action="/analytics" class="form-grid">
             <input type="date" name="start_date" value="{{ stats.start_date }}">
             <input type="date" name="end_date" value="{{ stats.end_date }}">
-            <button type="submit">Apply Filter</button>
+
+            <select name="chart_view">
+                <option value="trend" {% if stats.chart_view == "trend" %}selected{% endif %}>Trend Overview</option>
+                <option value="purpose" {% if stats.chart_view == "purpose" %}selected{% endif %}>Purpose Breakdown</option>
+                <option value="expected_walkin" {% if stats.chart_view == "expected_walkin" %}selected{% endif %}>Expected vs Walk-In</option>
+                <option value="receptionist" {% if stats.chart_view == "receptionist" %}selected{% endif %}>Receptionist Activity</option>
+            </select>
+
+            <select name="period">
+                <option value="day" {% if stats.period == "day" %}selected{% endif %}>Daily</option>
+                <option value="month" {% if stats.period == "month" %}selected{% endif %}>Monthly</option>
+                <option value="year" {% if stats.period == "year" %}selected{% endif %}>Yearly</option>
+            </select>
+
+            <button type="submit">Apply</button>
             <a class="button" href="/analytics">Reset</a>
         </form>
     </div>
 
     <div class="stat-grid">
+
         <div class="stat-card">
             <div class="stat-label">Visitors Today</div>
             <div class="stat-value">{{ stats.visitors_today }}</div>
+            <div class="trend {% if stats.today_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
+                {% if stats.today_change >= 0 %}▲{% else %}▼{% endif %}
+                {{ stats.today_change }}% vs yesterday
+            </div>
         </div>
 
         <div class="stat-card">
             <div class="stat-label">Currently Inside</div>
             <div class="stat-value">{{ stats.visitors_inside }}</div>
+            <div class="trend trend-neutral">Live occupancy now</div>
         </div>
 
         <div class="stat-card">
-            <div class="stat-label">Badges In Use</div>
-            <div class="stat-value">{{ stats.badges_in_use }}</div>
+            <div class="stat-label">Month Total</div>
+            <div class="stat-value">{{ stats.month_total }}</div>
+            <div class="trend {% if stats.month_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
+                {% if stats.month_change >= 0 %}▲{% else %}▼{% endif %}
+                {{ stats.month_change }}% vs last month
+            </div>
         </div>
 
         <div class="stat-card">
-            <div class="stat-label">Badges Available</div>
-            <div class="stat-value">{{ stats.badges_available }}</div>
+            <div class="stat-label">Badge Utilization</div>
+            <div class="stat-value">{{ stats.badge_utilization }}%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ stats.badge_utilization }}%;"></div>
+            </div>
         </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Expected Today</div>
+            <div class="stat-value">{{ stats.expected_today }}</div>
+            <div class="trend trend-neutral">Scheduled arrivals</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Walk-Ins Today</div>
+            <div class="stat-value">{{ stats.walkins_today }}</div>
+            <div class="trend trend-neutral">Unscheduled visitors</div>
+        </div>
+
     </div>
 
     <div class="card">
-        <h2>Daily Visitor Trend</h2>
-        <canvas id="dailyChart"></canvas>
+        <h2>14-Day Trend</h2>
+        <canvas id="sparkTrendChart"></canvas>
     </div>
 
     <div class="card">
-        <h2>Monthly Visitor Trend</h2>
-        <canvas id="monthlyChart"></canvas>
+        <h2>Analytics View</h2>
+        <canvas id="mainChart"></canvas>
     </div>
 
     <div class="card">
-        <h2>Yearly Visitor Trend</h2>
-        <canvas id="yearlyChart"></canvas>
-    </div>
+        <h2>Summary Table</h2>
 
-    <div class="card">
-        <h2>Daily Visitor Totals</h2>
+        {% if stats.chart_view == "trend" %}
         <table>
             <tr>
-                <th>Date</th>
-                <th>Total Visitors</th>
+                <th>Period</th>
+                <th>Total</th>
             </tr>
-            {% for day, total in stats.daily_counts.items() %}
+            {% for label, total in stats.trend_data.items() %}
             <tr>
-                <td>{{ day }}</td>
+                <td>{{ label }}</td>
                 <td>{{ total }}</td>
             </tr>
             {% endfor %}
         </table>
-    </div>
 
-    <div class="card">
-        <h2>Monthly Visitor Totals</h2>
+        {% elif stats.chart_view == "purpose" %}
         <table>
             <tr>
-                <th>Month</th>
-                <th>Total Visitors</th>
+                <th>Purpose</th>
+                <th>Total</th>
             </tr>
-            {% for month, total in stats.monthly_counts.items() %}
+            {% for label, total in stats.purpose_data.items() %}
             <tr>
-                <td>{{ month }}</td>
+                <td>{{ label }}</td>
                 <td>{{ total }}</td>
             </tr>
             {% endfor %}
         </table>
-    </div>
 
-    <div class="card">
-        <h2>Yearly Visitor Totals</h2>
+        {% elif stats.chart_view == "expected_walkin" %}
         <table>
             <tr>
-                <th>Year</th>
-                <th>Total Visitors</th>
+                <th>Type</th>
+                <th>Total</th>
             </tr>
-            {% for year, total in stats.yearly_counts.items() %}
+            {% for label, total in stats.expected_walkin_data.items() %}
             <tr>
-                <td>{{ year }}</td>
+                <td>{{ label }}</td>
                 <td>{{ total }}</td>
             </tr>
             {% endfor %}
         </table>
+
+        {% elif stats.chart_view == "receptionist" %}
+        <table>
+            <tr>
+                <th>Receptionist</th>
+                <th>Total Visitors</th>
+            </tr>
+            {% for label, total in stats.receptionist_data.items() %}
+            <tr>
+                <td>{{ label }}</td>
+                <td>{{ total }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
     </div>
 
 </div>
 
 <script>
-    const dailyLabels = {{ stats.daily_counts.keys()|list|tojson }};
-    const dailyValues = {{ stats.daily_counts.values()|list|tojson }};
+    const chartView = {{ stats.chart_view|tojson }};
 
-    const monthlyLabels = {{ stats.monthly_counts.keys()|list|tojson }};
-    const monthlyValues = {{ stats.monthly_counts.values()|list|tojson }};
+    let labels = [];
+    let values = [];
+    let chartType = "line";
+    let chartLabel = "Visitors";
 
-    const yearlyLabels = {{ stats.yearly_counts.keys()|list|tojson }};
-    const yearlyValues = {{ stats.yearly_counts.values()|list|tojson }};
+    if (chartView === "trend") {
+        labels = {{ stats.trend_data.keys()|list|tojson }};
+        values = {{ stats.trend_data.values()|list|tojson }};
+        chartType = "line";
+        chartLabel = "Visitor Trend";
+    } else if (chartView === "purpose") {
+        labels = {{ stats.purpose_data.keys()|list|tojson }};
+        values = {{ stats.purpose_data.values()|list|tojson }};
+        chartType = "bar";
+        chartLabel = "Most Common Purpose";
+    } else if (chartView === "expected_walkin") {
+        labels = {{ stats.expected_walkin_data.keys()|list|tojson }};
+        values = {{ stats.expected_walkin_data.values()|list|tojson }};
+        chartType = "doughnut";
+        chartLabel = "Expected vs Walk-In";
+    } else if (chartView === "receptionist") {
+        labels = {{ stats.receptionist_data.keys()|list|tojson }};
+        values = {{ stats.receptionist_data.values()|list|tojson }};
+        chartType = "bar";
+        chartLabel = "Receptionist Activity";
+    }
 
-    new Chart(document.getElementById("dailyChart"), {
-        type: "line",
+    new Chart(document.getElementById("mainChart"), {
+        type: chartType,
         data: {
-            labels: dailyLabels,
+            labels: labels,
             datasets: [{
-                label: "Visitors per Day",
-                data: dailyValues,
+                label: chartLabel,
+                data: values,
                 borderWidth: 2,
-                tension: 0.3,
+                tension: 0.35,
                 fill: false
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
             plugins: {
-                legend: { display: true }
+                legend: {
+                    display: true
+                }
             }
         }
     });
 
-    new Chart(document.getElementById("monthlyChart"), {
-        type: "bar",
+    new Chart(document.getElementById("sparkTrendChart"), {
+        type: "line",
         data: {
-            labels: monthlyLabels,
+            labels: {{ stats.trend_labels|tojson }},
             datasets: [{
-                label: "Visitors per Month",
-                data: monthlyValues,
-                borderWidth: 1
+                label: "Last 14 Days",
+                data: {{ stats.trend_values|tojson }},
+                borderWidth: 2,
+                tension: 0.35,
+                fill: false
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
             plugins: {
-                legend: { display: true }
-            }
-        }
-    });
-
-    new Chart(document.getElementById("yearlyChart"), {
-        type: "bar",
-        data: {
-            labels: yearlyLabels,
-            datasets: [{
-                label: "Visitors per Year",
-                data: yearlyValues,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true }
+                legend: {
+                    display: true
+                }
             }
         }
     });
