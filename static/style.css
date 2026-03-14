@@ -1,6 +1,6 @@
 body{
 font-family:Arial;
-background:#ffffff;
+background:white;
 margin:0;
 }
 
@@ -14,16 +14,16 @@ h1{
 color:#ff6a00;
 }
 
-.button{
+.btn{
 display:block;
 width:250px;
-padding:20px;
+padding:18px;
 background:#ff6a00;
 color:white;
 text-align:center;
-margin:20px 0;
 text-decoration:none;
 border-radius:8px;
+margin-top:20px;
 }
 
 button{
@@ -31,20 +31,26 @@ background:#ff6a00;
 color:white;
 border:none;
 padding:10px 15px;
-border-radius:5px;
+border-radius:4px;
 cursor:pointer;
+}
+
+input{
+display:block;
+margin:10px 0;
+padding:10px;
+width:300px;
 }
 
 table{
 width:100%;
-border-collapse:collapse;
 margin-top:20px;
+border-collapse:collapse;
 }
 
 th,td{
-border-bottom:1px solid #ddd;
 padding:10px;
-text-align:left;
+border-bottom:1px solid #ddd;
 }
 
 th{
