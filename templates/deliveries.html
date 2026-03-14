@@ -41,3 +41,50 @@
     </div>
 
     <div class="card">
+        <h2>All Deliveries</h2>
+
+        <table>
+            <tr>
+                <th>Parcel ID</th>
+                <th>Item</th>
+                <th>Employee</th>
+                <th>Email</th>
+                <th>Courier</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Received</th>
+                <th>Collected</th>
+                <th>Action</th>
+            </tr>
+
+            {% for d in deliveries %}
+            <tr>
+                <td>{{ d.get("ParcelID", "") }}</td>
+                <td>{{ d.get("Item", "") }}</td>
+                <td>{{ d.get("Employee", "") }}</td>
+                <td>{{ d.get("Email", "") }}</td>
+                <td>{{ d.get("Courier", "") }}</td>
+                <td>{{ d.get("Location", "") }}</td>
+                <td>{{ d.get("Status", "") }}</td>
+                <td>{{ d.get("ReceivedTime", "") }}</td>
+                <td>{{ d.get("CollectedTime", "") }}</td>
+                <td>
+                    {% if d.get("Status", "") == "Stored" %}
+                    <form action="/collect_delivery" method="POST">
+                        <input type="hidden" name="row_index" value="{{ loop.index0 }}">
+                        <button type="submit">Collected</button>
+                    </form>
+                    {% else %}
+                    Done
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a class="back-link" href="/">Back</a>
+
+</div>
+</body>
+</html>
