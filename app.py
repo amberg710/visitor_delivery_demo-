@@ -153,11 +153,29 @@ def yearly_counts(visitors):
     return dict(sorted(counts.items(), reverse=True))
 
 
+def normalize_date_string(date_str):
+    value = (date_str or "").strip()
+    if not value:
+        return ""
+
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    return value
+
+
 def get_today_prebooked(prebooked, today_str):
-    return [
-        p for p in prebooked
-        if p.get("VisitDate", "").strip() == today_str
-    ]
+    out = []
+
+    for p in prebooked:
+        visit_date = normalize_date_string(p.get("VisitDate", ""))
+        if visit_date == today_str:
+            out.append(p)
+
+    return out
 
 
 @app.route("/")
@@ -246,7 +264,9 @@ def collect_delivery():
 
         collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+        # G = Status
         update_cell("Deliveries", row_index, 6, "Collected")
+        # I = CollectedTime
         update_cell("Deliveries", row_index, 8, collected_time)
 
         return redirect(url_for("deliveries_page"))
@@ -370,7 +390,9 @@ def checkout_visitor():
 
         checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+        # G = Status
         update_cell("Visitors", row_index, 6, "Out")
+        # I = CheckOutTime
         update_cell("Visitors", row_index, 8, checkout_time)
 
         return redirect(url_for("visitors_page"))
@@ -433,11 +455,18 @@ def health():
     try:
         visitors = get_sheet("Visitors")
         deliveries = get_sheet("Deliveries")
+        prebooked = get_sheet("PrebookedVisitors")
+
         return {
             "ok": True,
             "visitors_rows": len(visitors),
             "deliveries_rows": len(deliveries),
+            "prebooked_rows": len(prebooked),
             "sheet_id": SHEET_ID,
         }
     except Exception as e:
         return {"ok": False, "error": str(e)}, 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
