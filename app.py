@@ -147,6 +147,13 @@ def yearly_counts(visitors: list[dict]) -> dict[str, int]:
     return dict(sorted(counts.items(), reverse=True))
 
 
+def get_today_prebooked(prebooked: list[dict], today_str: str) -> list[dict]:
+    return [
+        p for p in prebooked
+        if p.get("VisitDate", "").strip() == today_str
+    ]
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
@@ -233,9 +240,7 @@ def collect_delivery():
 
         collected_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # G = Status
         update_cell("Deliveries", row_index, 6, "Collected")
-        # I = CollectedTime
         update_cell("Deliveries", row_index, 8, collected_time)
 
         return redirect(url_for("deliveries_page"))
@@ -259,8 +264,12 @@ def log_visitor():
         name = request.form.get("name", "").strip()
         id_number = request.form.get("id_number", "").strip()
         purpose = request.form.get("purpose", "").strip()
+        other_purpose = request.form.get("other_purpose", "").strip()
         host = request.form.get("host", "").strip()
         badge_number = request.form.get("badge_number", "").strip()
+
+        if purpose == "Other" and other_purpose:
+            purpose = other_purpose
 
         if not name or not purpose or not host or not badge_number:
             return "Missing required fields.", 400
@@ -316,13 +325,20 @@ def log_visitor():
 def visitors_page():
     try:
         visitors = get_sheet("Visitors")
+        prebooked = get_sheet("Prebooked")
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
         active_visitors = [
             v for v in visitors if v.get("Status", "").strip().lower() == "in"
         ]
+
+        todays_prebooked = get_today_prebooked(prebooked, today_str)
+
         return render_template(
             "visitors.html",
             visitors=visitors,
             active_visitors=active_visitors,
+            todays_prebooked=todays_prebooked,
         )
     except Exception as e:
         return f"/visitors failed: {str(e)}", 500
@@ -348,9 +364,7 @@ def checkout_visitor():
 
         checkout_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # G = Status
         update_cell("Visitors", row_index, 6, "Out")
-        # I = CheckOutTime
         update_cell("Visitors", row_index, 8, checkout_time)
 
         return redirect(url_for("visitors_page"))
@@ -424,4 +438,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
