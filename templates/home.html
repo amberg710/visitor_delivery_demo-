@@ -5,21 +5,103 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="container">
-    <h1>Reception Dashboard</h1>
 
-    <div class="card">
-        <h2>Visitors</h2>
-        <a class="button" href="/checkin">Visitor Check-In</a>
-        <a class="button" href="/visitors">Visitor Log</a>
-        <a class="button" href="/badges">Badge Dashboard</a>
-        <a class="button" href="/analytics">Analytics</a>
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>AccessHub</h1>
+            <p>Visitor & Delivery Operations</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/" class="active">Dashboard</a>
+            <a href="/checkin">Check-In</a>
+            <a href="/visitors">Visitors</a>
+            <a href="/deliveries">Deliveries</a>
+            <a href="/badges">Badges</a>
+            <a href="/analytics">Analytics</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            Reception Operations Platform
+        </div>
+    </aside>
+
+    <div class="main-shell">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>Reception Dashboard</h2>
+                <p>Central access point for visitors, badges, deliveries, and analytics</p>
+            </div>
+            <div class="topbar-right">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live
+                </div>
+            </div>
+        </header>
+
+        <main class="page-content">
+            <div class="container">
+
+                <div class="page-hero">
+                    <div>
+                        <h1>Reception Dashboard</h1>
+                        <div class="page-subtitle">
+                            Manage front desk operations from one enterprise workspace.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Visitor Operations</div>
+                        <div class="stat-value">4</div>
+                        <div class="trend trend-neutral">Check-In, Log, Badges, Analytics</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Delivery Operations</div>
+                        <div class="stat-value">1</div>
+                        <div class="trend trend-neutral">Receiving and collection tracking</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Platform Status</div>
+                        <div class="stat-value">Live</div>
+                        <div class="trend trend-up">System available</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Visitor Management</h2>
+                    <p style="margin-bottom: 16px;">
+                        Access visitor registration, expected arrivals, live visitor logs, badge usage, and reporting.
+                    </p>
+                    <div class="top-actions">
+                        <a class="button" href="/checkin">Visitor Check-In</a>
+                        <a class="button" href="/visitors">Visitor Log</a>
+                        <a class="button" href="/badges">Badge Dashboard</a>
+                        <a class="button" href="/analytics">Analytics</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Delivery Management</h2>
+                    <p style="margin-bottom: 16px;">
+                        Track incoming parcels, assign storage locations, and monitor collections.
+                    </p>
+                    <div class="top-actions">
+                        <a class="button" href="/deliveries">Open Deliveries</a>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
-    <div class="card">
-        <h2>Deliveries</h2>
-        <a class="button" href="/deliveries">Deliveries</a>
-    </div>
 </div>
+
 </body>
 </html>
