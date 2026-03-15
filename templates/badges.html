@@ -6,73 +6,93 @@
 </head>
 <body>
 
-<div class="glass-nav">
-    <div class="nav-inner">
-        <div class="nav-brand">Visitor & Delivery Hub</div>
-        <div class="nav-links">
-            <a href="/">Home</a>
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>AccessHub</h1>
+            <p>Visitor & Delivery Operations</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/">Dashboard</a>
             <a href="/checkin">Check-In</a>
             <a href="/visitors">Visitors</a>
             <a href="/deliveries">Deliveries</a>
-            <a href="/badges">Badges</a>
+            <a href="/badges" class="active">Badges</a>
             <a href="/analytics">Analytics</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            Reception Operations Platform
         </div>
-    </div>
-</div>
+    </aside>
 
-<div class="container">
-
-    <div class="page-hero">
-        <div>
-            <h1>Badge Dashboard</h1>
-            <div class="page-subtitle">Monitor live badge usage and after-hours return alerts.</div>
-        </div>
-    </div>
-
-    {% if badge_alert.show_alert %}
-    <div class="card alert-card">
-        <h2>Badge Return Alert</h2>
-        <p><strong>After-hours alert:</strong> these badges are still checked out after 7:00 PM.</p>
-
-        <table>
-            <tr>
-                <th>Name</th>
-                <th>Badge</th>
-                <th>Host</th>
-                <th>Check In Time</th>
-            </tr>
-
-            {% for item in badge_alert.overdue_badges %}
-            <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.badge }}</td>
-                <td>{{ item.host }}</td>
-                <td>{{ item.checkin }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    {% endif %}
-
-    <div class="card">
-        <h2>Live Badge Status</h2>
-        <div class="badges-grid">
-            {% for badge in badges %}
-                <div class="badge-card {% if badge.available %}badge-free{% else %}badge-used{% endif %}">
-                    <div class="badge-number">Badge {{ badge.number }}</div>
-                    <div class="badge-status">
-                        {% if badge.available %}
-                            Available
-                        {% else %}
-                            In Use
-                        {% endif %}
-                    </div>
-                    {% if badge.name %}
-                        <div class="badge-name">{{ badge.name }}</div>
-                    {% endif %}
+    <div class="main-shell">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>Badge Dashboard</h2>
+                <p>Monitor live badge usage and after-hours return alerts</p>
+            </div>
+            <div class="topbar-right">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        </header>
+
+        <main class="page-content">
+            <div class="container">
+
+                {% if badge_alert.show_alert %}
+                <div class="card alert-card">
+                    <h2>Badge Return Alert</h2>
+                    <p><strong>After-hours alert:</strong> these badges are still checked out after 7:00 PM.</p>
+
+                    <table>
+                        <tr>
+                            <th>Name</th>
+                            <th>Badge</th>
+                            <th>Host</th>
+                            <th>Check In Time</th>
+                        </tr>
+
+                        {% for item in badge_alert.overdue_badges %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.badge }}</td>
+                            <td>{{ item.host }}</td>
+                            <td>{{ item.checkin }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <h2>Live Badge Status</h2>
+                    <div class="badges-grid">
+                        {% for badge in badges %}
+                            <div class="badge-card {% if badge.available %}badge-free{% else %}badge-used{% endif %}">
+                                <div class="badge-number">Badge {{ badge.number }}</div>
+                                <div class="badge-status">
+                                    {% if badge.available %}
+                                        Available
+                                    {% else %}
+                                        In Use
+                                    {% endif %}
+                                </div>
+                                {% if badge.name %}
+                                    <div class="badge-name">{{ badge.name }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
 </div>
