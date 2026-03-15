@@ -212,23 +212,35 @@ def normalize_date_string(date_str):
 
 def get_today_prebooked(prebooked, today_str):
     out = []
-
     for p in prebooked:
         visit_date = normalize_date_string(p.get("VisitDate", ""))
         if visit_date == today_str:
             out.append(p)
-
     return out
 
 
-def get_today_prebooked_with_index(prebooked, today_str):
+def get_today_prebooked_with_index(prebooked, visitors, today_str):
+    checked_in_today = set()
+
+    for v in visitors:
+        visitor_date = v.get("Date", "").strip()
+        visitor_name = (v.get("Name", "") or "").strip().lower()
+        visitor_host = (v.get("Host", "") or "").strip().lower()
+
+        if visitor_date == today_str:
+            checked_in_today.add((visitor_name, visitor_host))
+
     out = []
     for idx, p in enumerate(prebooked):
         visit_date = normalize_date_string(p.get("VisitDate", ""))
-        if visit_date == today_str:
+        booked_name = (p.get("Name", "") or "").strip().lower()
+        booked_host = (p.get("Host", "") or "").strip().lower()
+
+        if visit_date == today_str and (booked_name, booked_host) not in checked_in_today:
             item = dict(p)
             item["_row_index"] = idx
             out.append(item)
+
     return out
 
 
@@ -376,7 +388,7 @@ def build_recent_daily_trend(visitors, days=14):
 
 def get_badge_alert_state(visitors):
     now = datetime.now()
-    weekday = now.weekday()  # Monday=0 ... Sunday=6
+    weekday = now.weekday()
     after_hours = now.hour >= 19
     is_weekday = weekday < 5
 
@@ -401,9 +413,116 @@ def get_badge_alert_state(visitors):
     }
 
 
+def get_recent_activity(visitors, deliveries, limit=8):
+    activity = []
+
+    for v in visitors:
+        checkin_time = v.get("CheckInTime", "").strip()
+        checkout_time = v.get("CheckOutTime", "").strip()
+        name = v.get("Name", "").strip() or "Visitor"
+        badge = v.get("BadgeNumber", "").strip()
+        visit_type = v.get("VisitType", "").strip() or "Visitor"
+
+        if checkin_time:
+            activity.append({
+                "time": checkin_time,
+                "type": "visitor_in",
+                "title": f"{name} checked in",
+                "meta": f"Badge {badge} • {visit_type}"
+            })
+
+        if checkout_time:
+            activity.append({
+                "time": checkout_time,
+                "type": "visitor_out",
+                "title": f"{name} checked out",
+                "meta": f"Badge {badge}"
+            })
+
+    for d in deliveries:
+        received_time = d.get("ReceivedTime", "").strip()
+        collected_time = d.get("CollectedTime", "").strip()
+        item = d.get("Item", "").strip() or "Delivery"
+        employee = d.get("Employee", "").strip() or "Employee"
+        location = d.get("Location", "").strip()
+
+        if received_time:
+            activity.append({
+                "time": received_time,
+                "type": "delivery_in",
+                "title": f"{item} received",
+                "meta": f"{employee} • Location {location}"
+            })
+
+        if collected_time:
+            activity.append({
+                "time": collected_time,
+                "type": "delivery_out",
+                "title": f"{item} collected",
+                "meta": f"{employee}"
+            })
+
+    def parse_time(value):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return datetime.min
+
+    activity.sort(key=lambda x: parse_time(x["time"]), reverse=True)
+    return activity[:limit]
+
+
 @app.route("/")
 def home():
-    return render_template("home.html")
+    try:
+        visitors = get_sheet("Visitors")
+        deliveries = get_sheet("Deliveries")
+        prebooked = get_sheet("PrebookedVisitors")
+
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+
+        visitors_inside = count_visitors_inside(visitors)
+        expected_today = count_expected_today(prebooked, today_str)
+        badges_in_use = len(get_used_badges(visitors))
+        deliveries_stored = sum(
+            1 for d in deliveries
+            if d.get("Status", "").strip().lower() == "stored"
+        )
+
+        active_visitors = [
+            v for v in visitors
+            if v.get("Status", "").strip().lower() == "in"
+        ]
+
+        todays_prebooked = get_today_prebooked_with_index(prebooked, visitors, today_str)
+
+        stored_deliveries = [
+            d for d in deliveries
+            if d.get("Status", "").strip().lower() == "stored"
+        ]
+
+        recent_activity = get_recent_activity(visitors, deliveries, limit=8)
+
+        dashboard_stats = {
+            "visitors_inside": visitors_inside,
+            "expected_today": expected_today,
+            "badges_in_use": badges_in_use,
+            "deliveries_stored": deliveries_stored,
+        }
+
+        return render_template(
+            "home.html",
+            dashboard_stats=dashboard_stats,
+            active_visitors=active_visitors[:5],
+            todays_prebooked=todays_prebooked[:5],
+            stored_deliveries=stored_deliveries[:5],
+            recent_activity=recent_activity,
+            current_date_label=now.strftime("%A, %d %B %Y"),
+            current_time_label=now.strftime("%H:%M"),
+        )
+    except Exception as e:
+        return f"/ failed: {str(e)}", 500
 
 
 @app.route("/deliveries")
@@ -617,7 +736,7 @@ def visitors_page():
         ]
 
         prebooked = get_sheet("PrebookedVisitors")
-        todays_prebooked = get_today_prebooked_with_index(prebooked, today_str)
+        todays_prebooked = get_today_prebooked_with_index(prebooked, visitors, today_str)
 
         return render_template(
             "visitors.html",
