@@ -7,172 +7,188 @@
 </head>
 <body>
 
-<div class="glass-nav">
-    <div class="nav-inner">
-        <div class="nav-brand">Visitor & Delivery Hub</div>
-        <div class="nav-links">
-            <a href="/">Home</a>
+<div class="app-shell">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>AccessHub</h1>
+            <p>Visitor & Delivery Operations</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/">Dashboard</a>
             <a href="/checkin">Check-In</a>
             <a href="/visitors">Visitors</a>
             <a href="/deliveries">Deliveries</a>
             <a href="/badges">Badges</a>
-            <a href="/analytics">Analytics</a>
+            <a href="/analytics" class="active">Analytics</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            Reception Operations Platform
         </div>
-    </div>
-</div>
+    </aside>
 
-<div class="container">
-
-    <div class="page-hero">
-        <div>
-            <h1>Visitor Analytics</h1>
-            <div class="page-subtitle">
-                Live business-style dashboard for visitor flow, scheduled arrivals, and badge usage.
+    <div class="main-shell">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>Visitor Analytics</h2>
+                <p>Operational insights, visitor flow, and performance trends</p>
             </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>Filters</h2>
-        <form method="GET" action="/analytics" class="form-grid">
-            <input type="date" name="start_date" value="{{ stats.start_date }}">
-            <input type="date" name="end_date" value="{{ stats.end_date }}">
-
-            <select name="chart_view">
-                <option value="trend" {% if stats.chart_view == "trend" %}selected{% endif %}>Trend Overview</option>
-                <option value="purpose" {% if stats.chart_view == "purpose" %}selected{% endif %}>Purpose Breakdown</option>
-                <option value="expected_walkin" {% if stats.chart_view == "expected_walkin" %}selected{% endif %}>Scheduled vs Unscheduled</option>
-                <option value="receptionist" {% if stats.chart_view == "receptionist" %}selected{% endif %}>Receptionist Activity</option>
-            </select>
-
-            <select name="period">
-                <option value="day" {% if stats.period == "day" %}selected{% endif %}>Daily</option>
-                <option value="month" {% if stats.period == "month" %}selected{% endif %}>Monthly</option>
-                <option value="year" {% if stats.period == "year" %}selected{% endif %}>Yearly</option>
-            </select>
-
-            <button type="submit">Apply</button>
-            <a class="button" href="/analytics">Reset</a>
-        </form>
-    </div>
-
-    <div class="stat-grid">
-
-        <div class="stat-card">
-            <div class="stat-label">Visitors Today</div>
-            <div class="stat-value">{{ stats.visitors_today }}</div>
-            <div class="trend {% if stats.today_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
-                {% if stats.today_change >= 0 %}▲{% else %}▼{% endif %}
-                {{ stats.today_change }}% vs yesterday
+            <div class="topbar-right">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live
+                </div>
             </div>
-        </div>
+        </header>
 
-        <div class="stat-card">
-            <div class="stat-label">Currently Inside</div>
-            <div class="stat-value">{{ stats.visitors_inside }}</div>
-            <div class="trend trend-neutral">Live occupancy now</div>
-        </div>
+        <main class="page-content">
+            <div class="container">
 
-        <div class="stat-card">
-            <div class="stat-label">Month Total</div>
-            <div class="stat-value">{{ stats.month_total }}</div>
-            <div class="trend {% if stats.month_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
-                {% if stats.month_change >= 0 %}▲{% else %}▼{% endif %}
-                {{ stats.month_change }}% vs last month
+                <div class="card">
+                    <h2>Filters</h2>
+                    <form method="GET" action="/analytics" class="form-grid">
+                        <input type="date" name="start_date" value="{{ stats.start_date }}">
+                        <input type="date" name="end_date" value="{{ stats.end_date }}">
+
+                        <select name="chart_view">
+                            <option value="trend" {% if stats.chart_view == "trend" %}selected{% endif %}>Trend Overview</option>
+                            <option value="purpose" {% if stats.chart_view == "purpose" %}selected{% endif %}>Purpose Breakdown</option>
+                            <option value="expected_walkin" {% if stats.chart_view == "expected_walkin" %}selected{% endif %}>Scheduled vs Unscheduled</option>
+                            <option value="receptionist" {% if stats.chart_view == "receptionist" %}selected{% endif %}>Receptionist Activity</option>
+                        </select>
+
+                        <select name="period">
+                            <option value="day" {% if stats.period == "day" %}selected{% endif %}>Daily</option>
+                            <option value="month" {% if stats.period == "month" %}selected{% endif %}>Monthly</option>
+                            <option value="year" {% if stats.period == "year" %}selected{% endif %}>Yearly</option>
+                        </select>
+
+                        <button type="submit">Apply</button>
+                        <a class="button" href="/analytics">Reset</a>
+                    </form>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Visitors Today</div>
+                        <div class="stat-value">{{ stats.visitors_today }}</div>
+                        <div class="trend {% if stats.today_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
+                            {% if stats.today_change >= 0 %}▲{% else %}▼{% endif %}
+                            {{ stats.today_change }}% vs yesterday
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Currently Inside</div>
+                        <div class="stat-value">{{ stats.visitors_inside }}</div>
+                        <div class="trend trend-neutral">Live occupancy now</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Month Total</div>
+                        <div class="stat-value">{{ stats.month_total }}</div>
+                        <div class="trend {% if stats.month_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
+                            {% if stats.month_change >= 0 %}▲{% else %}▼{% endif %}
+                            {{ stats.month_change }}% vs last month
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Badge Utilization</div>
+                        <div class="stat-value">{{ stats.badge_utilization }}%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ stats.badge_utilization }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Expected Today</div>
+                        <div class="stat-value">{{ stats.expected_today }}</div>
+                        <div class="trend trend-neutral">Scheduled arrivals</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Walk-Ins Today</div>
+                        <div class="stat-value">{{ stats.walkins_today }}</div>
+                        <div class="trend trend-neutral">Unscheduled visitors</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>14-Day Trend</h2>
+                    <canvas id="sparkTrendChart"></canvas>
+                </div>
+
+                <div class="card">
+                    <h2>Analytics View</h2>
+                    <canvas id="mainChart"></canvas>
+                </div>
+
+                <div class="card">
+                    <h2>Summary Table</h2>
+
+                    {% if stats.chart_view == "trend" %}
+                    <table>
+                        <tr>
+                            <th>Period</th>
+                            <th>Total</th>
+                        </tr>
+                        {% for label, total in stats.trend_data.items() %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td>{{ total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+
+                    {% elif stats.chart_view == "purpose" %}
+                    <table>
+                        <tr>
+                            <th>Purpose</th>
+                            <th>Total</th>
+                        </tr>
+                        {% for label, total in stats.purpose_data.items() %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td>{{ total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+
+                    {% elif stats.chart_view == "expected_walkin" %}
+                    <table>
+                        <tr>
+                            <th>Type</th>
+                            <th>Total</th>
+                        </tr>
+                        {% for label, total in stats.expected_walkin_data.items() %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td>{{ total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+
+                    {% elif stats.chart_view == "receptionist" %}
+                    <table>
+                        <tr>
+                            <th>Receptionist</th>
+                            <th>Total Visitors</th>
+                        </tr>
+                        {% for label, total in stats.receptionist_data.items() %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td>{{ total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% endif %}
+                </div>
+
             </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-label">Badge Utilization</div>
-            <div class="stat-value">{{ stats.badge_utilization }}%</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {{ stats.badge_utilization }}%;"></div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-label">Expected Today</div>
-            <div class="stat-value">{{ stats.expected_today }}</div>
-            <div class="trend trend-neutral">Scheduled arrivals</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-label">Walk-Ins Today</div>
-            <div class="stat-value">{{ stats.walkins_today }}</div>
-            <div class="trend trend-neutral">Unscheduled visitors</div>
-        </div>
-
-    </div>
-
-    <div class="card">
-        <h2>14-Day Trend</h2>
-        <canvas id="sparkTrendChart"></canvas>
-    </div>
-
-    <div class="card">
-        <h2>Analytics View</h2>
-        <canvas id="mainChart"></canvas>
-    </div>
-
-    <div class="card">
-        <h2>Summary Table</h2>
-
-        {% if stats.chart_view == "trend" %}
-        <table>
-            <tr>
-                <th>Period</th>
-                <th>Total</th>
-            </tr>
-            {% for label, total in stats.trend_data.items() %}
-            <tr>
-                <td>{{ label }}</td>
-                <td>{{ total }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        {% elif stats.chart_view == "purpose" %}
-        <table>
-            <tr>
-                <th>Purpose</th>
-                <th>Total</th>
-            </tr>
-            {% for label, total in stats.purpose_data.items() %}
-            <tr>
-                <td>{{ label }}</td>
-                <td>{{ total }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        {% elif stats.chart_view == "expected_walkin" %}
-        <table>
-            <tr>
-                <th>Type</th>
-                <th>Total</th>
-            </tr>
-            {% for label, total in stats.expected_walkin_data.items() %}
-            <tr>
-                <td>{{ label }}</td>
-                <td>{{ total }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        {% elif stats.chart_view == "receptionist" %}
-        <table>
-            <tr>
-                <th>Receptionist</th>
-                <th>Total Visitors</th>
-            </tr>
-            {% for label, total in stats.receptionist_data.items() %}
-            <tr>
-                <td>{{ label }}</td>
-                <td>{{ total }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        {% endif %}
+        </main>
     </div>
 
 </div>
