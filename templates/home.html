@@ -35,6 +35,10 @@
                 <p>Central access point for visitors, badges, deliveries, and analytics</p>
             </div>
             <div class="topbar-right">
+                <div class="topbar-datetime">
+                    <div id="liveDate">{{ current_date_label }}</div>
+                    <div id="liveClock">{{ current_time_label }}</div>
+                </div>
                 <div class="live-indicator">
                     <span class="live-dot"></span>
                     Live
@@ -56,44 +60,147 @@
 
                 <div class="stat-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Visitor Operations</div>
-                        <div class="stat-value">4</div>
-                        <div class="trend trend-neutral">Check-In, Log, Badges, Analytics</div>
+                        <div class="stat-label">Visitors Inside</div>
+                        <div class="stat-value">{{ dashboard_stats.visitors_inside }}</div>
+                        <div class="trend trend-neutral">Currently checked in</div>
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-label">Delivery Operations</div>
-                        <div class="stat-value">1</div>
-                        <div class="trend trend-neutral">Receiving and collection tracking</div>
+                        <div class="stat-label">Expected Today</div>
+                        <div class="stat-value">{{ dashboard_stats.expected_today }}</div>
+                        <div class="trend trend-neutral">Scheduled arrivals today</div>
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-label">Platform Status</div>
-                        <div class="stat-value">Live</div>
-                        <div class="trend trend-up">System available</div>
+                        <div class="stat-label">Badges In Use</div>
+                        <div class="stat-value">{{ dashboard_stats.badges_in_use }}</div>
+                        <div class="trend trend-neutral">Active badge allocation</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Stored Deliveries</div>
+                        <div class="stat-value">{{ dashboard_stats.deliveries_stored }}</div>
+                        <div class="trend trend-neutral">Awaiting collection</div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2>Visitor Management</h2>
-                    <p style="margin-bottom: 16px;">
-                        Access visitor registration, expected arrivals, live visitor logs, badge usage, and reporting.
-                    </p>
+                    <h2>Quick Actions</h2>
                     <div class="top-actions">
                         <a class="button" href="/checkin">Visitor Check-In</a>
                         <a class="button" href="/visitors">Visitor Log</a>
-                        <a class="button" href="/badges">Badge Dashboard</a>
+                        <a class="button" href="/deliveries">Deliveries</a>
+                        <a class="button" href="/badges">Badges</a>
                         <a class="button" href="/analytics">Analytics</a>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h2>Delivery Management</h2>
-                    <p style="margin-bottom: 16px;">
-                        Track incoming parcels, assign storage locations, and monitor collections.
-                    </p>
-                    <div class="top-actions">
-                        <a class="button" href="/deliveries">Open Deliveries</a>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h2>Expected Arrivals Today</h2>
+
+                        {% if todays_prebooked %}
+                        <table>
+                            <tr>
+                                <th>Name</th>
+                                <th>Purpose</th>
+                                <th>Host</th>
+                                <th>Status</th>
+                            </tr>
+                            {% for p in todays_prebooked %}
+                            <tr>
+                                <td>{{ p.get("Name", "") }}</td>
+                                <td>{{ p.get("Purpose", "") }}</td>
+                                <td>{{ p.get("Host", "") }}</td>
+                                <td><span class="status-chip pending-chip">Pending</span></td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        {% else %}
+                            <p>No expected arrivals remaining for today.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="card">
+                        <h2>Active Visitors</h2>
+
+                        {% if active_visitors %}
+                        <table>
+                            <tr>
+                                <th>Name</th>
+                                <th>Host</th>
+                                <th>Badge</th>
+                                <th>Visit Type</th>
+                                <th>Check In</th>
+                            </tr>
+                            {% for v in active_visitors %}
+                            <tr>
+                                <td>{{ v.get("Name", "") }}</td>
+                                <td>{{ v.get("Host", "") }}</td>
+                                <td>{{ v.get("BadgeNumber", "") }}</td>
+                                <td>
+                                    {% if v.get("VisitType", "").strip().lower() == "scheduled" %}
+                                        <span class="status-chip scheduled-chip">Scheduled</span>
+                                    {% else %}
+                                        <span class="status-chip unscheduled-chip">Unscheduled</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ v.get("CheckInTime", "") }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        {% else %}
+                            <p>No active visitors currently inside.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h2>Stored Deliveries</h2>
+
+                        {% if stored_deliveries %}
+                        <table>
+                            <tr>
+                                <th>Parcel ID</th>
+                                <th>Item</th>
+                                <th>Employee</th>
+                                <th>Location</th>
+                                <th>Received</th>
+                            </tr>
+                            {% for d in stored_deliveries %}
+                            <tr>
+                                <td>{{ d.get("ParcelID", "") }}</td>
+                                <td>{{ d.get("Item", "") }}</td>
+                                <td>{{ d.get("Employee", "") }}</td>
+                                <td>{{ d.get("Location", "") }}</td>
+                                <td>{{ d.get("ReceivedTime", "") }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        {% else %}
+                            <p>No stored deliveries awaiting collection.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="card">
+                        <h2>Recent Activity</h2>
+
+                        {% if recent_activity %}
+                        <div class="activity-feed">
+                            {% for item in recent_activity %}
+                            <div class="activity-item">
+                                <div class="activity-time">{{ item.time }}</div>
+                                <div class="activity-body">
+                                    <div class="activity-title">{{ item.title }}</div>
+                                    <div class="activity-meta">{{ item.meta }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                            <p>No recent activity available.</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -102,6 +209,35 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    const clockEl = document.getElementById("liveClock");
+    const dateEl = document.getElementById("liveDate");
+
+    function updateClock() {
+        const now = new Date();
+
+        const time = now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+        const date = now.toLocaleDateString([], {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        });
+
+        if (clockEl) clockEl.textContent = time;
+        if (dateEl) dateEl.textContent = date;
+    }
+
+    updateClock();
+    setInterval(updateClock, 30000);
+})();
+</script>
 
 </body>
 </html>
